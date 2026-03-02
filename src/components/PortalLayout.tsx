@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, LogOut, Bell, GraduationCap } from "lucide-react";
+import { Menu, LogOut, Bell, GraduationCap, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -22,7 +23,13 @@ interface PortalLayoutProps {
 
 const PortalLayout = ({ role, userName, userAvatar, navItems, activeNav, onNavChange, children, notificationSlot }: PortalLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
+  const { resolvedTheme, setTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -82,14 +89,24 @@ const PortalLayout = ({ role, userName, userAvatar, navItems, activeNav, onNavCh
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-foreground transition-colors">
             <Menu className="h-5 w-5" />
           </button>
-          {notificationSlot || (
-            <button className="relative text-muted-foreground hover:text-foreground transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
-                3
-              </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Toggle theme"
+              type="button"
+            >
+              {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-          )}
+            {notificationSlot || (
+              <button className="relative text-muted-foreground hover:text-foreground transition-colors">
+                <Bell className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
+                  3
+                </span>
+              </button>
+            )}
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto p-6 scrollbar-thin">{children}</main>
