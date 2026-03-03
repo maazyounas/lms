@@ -70,6 +70,57 @@ const StudentAssignments = ({ student }: Props) => {
             ))}
           </div>
 
+
+            {/* Assignment Details */}
+<div className="border-t border-border pt-6 mt-6">
+  <h3 className="font-semibold text-foreground mb-4">
+    Assignment Details
+  </h3>
+
+  <div className="space-y-4">
+
+    {/* Chapter Info */}
+    <div className="bg-muted/30 rounded-lg p-4">
+      <p className="text-xs text-muted-foreground mb-1">Chapter</p>
+      <p className="text-sm font-medium text-foreground">
+        Chapter {selected.chapterNumber}: {selected.chapterName}
+      </p>
+    </div>
+
+    {/* Question */}
+    <div className="bg-muted/30 rounded-lg p-4">
+      <p className="text-xs text-muted-foreground mb-1">Question</p>
+      <p className="text-sm text-foreground">
+        {selected.question}
+      </p>
+    </div>
+
+    {/* Total Marks */}
+    <div className="bg-muted/30 rounded-lg p-4">
+      <p className="text-xs text-muted-foreground mb-1">Total Marks</p>
+      <p className="text-sm font-medium text-foreground">
+        {selected.totalMarks} Marks
+      </p>
+    </div>
+
+    {/* Submission Type */}
+    <div className="bg-muted/30 rounded-lg p-4">
+      <p className="text-xs text-muted-foreground mb-1">Submission Type</p>
+      <p className="text-sm font-medium text-foreground">
+        {selected.submissionType}
+      </p>
+    </div>
+
+    {/* Instructions */}
+    <div className="bg-muted/30 rounded-lg p-4">
+      <p className="text-xs text-muted-foreground mb-1">Instructions</p>
+      <p className="text-sm text-foreground">
+        {selected.instructions}
+      </p>
+    </div>
+
+  </div>
+</div>
           {/* Upload Section */}
           {(selected.status === "Pending" || selected.status === "Missing") && (
             <div className="border-t border-border pt-5">

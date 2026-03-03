@@ -11,8 +11,6 @@ import {
   Plus,
   Trash2,
   Pencil,
-  CheckCircle,
-  XCircle,
   ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,7 +18,6 @@ import PortalLayout from "@/components/PortalLayout";
 import {
   STUDENTS,
   TEACHERS,
-  COURSES,
   ANNOUNCEMENTS,
   TIMETABLE,
   TEACHER_ASSIGNMENTS,

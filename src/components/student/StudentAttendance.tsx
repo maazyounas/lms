@@ -1,7 +1,13 @@
 import { useState, useMemo } from "react";
 import { CheckCircle, XCircle, Clock, ArrowLeft } from "lucide-react";
 import type { Student } from "@/data/mockData";
-
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 interface Props {
   student: Student;
 }
@@ -61,6 +67,18 @@ const StudentAttendance = ({ student }: Props) => {
   const [filter, setFilter] = useState<AttendanceStatus | null>(null);
   const attPct = ((student.attendance.present / student.attendance.total) * 100).toFixed(0);
 
+  const chartData = [
+  { name: "Present", value: student.attendance.present },
+  { name: "Absent", value: student.attendance.absent },
+  { name: "Late", value: student.attendance.late },
+];
+
+const COLORS = {
+  Present: "hsl(var(--success))",
+  Absent: "hsl(var(--destructive))",
+  Late: "hsl(var(--warning))",
+};
+
   const log = useMemo(() => generateAttendanceLog(student.attendance), [student]);
 
   const filtered = filter ? log.filter((r) => r.status === filter) : null;
@@ -81,7 +99,40 @@ const StudentAttendance = ({ student }: Props) => {
           </button>
         )}
       </div>
+{/* Attendance Chart */}
+<div className="bg-card border border-border rounded-xl p-6 mb-6">
+  <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
+    Attendance Distribution
+  </h2>
 
+  <div className="h-72">
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie
+          data={chartData}
+          dataKey="value"
+          nameKey="name"
+          outerRadius={100}
+          innerRadius={60}
+          paddingAngle={4}
+        >
+          {chartData.map((entry) => (
+            <Cell
+              key={entry.name}
+              fill={COLORS[entry.name as keyof typeof COLORS]}
+            />
+          ))}
+        </Pie>
+        <Tooltip
+          contentStyle={{
+            backgroundColor: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+          }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+</div>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {cards.map((item) => {

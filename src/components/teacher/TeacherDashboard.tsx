@@ -1,4 +1,4 @@
-import { BookOpen, Users, TrendingUp, UserCheck, ClipboardList, ArrowRight } from "lucide-react";
+import { BookOpen, Users, TrendingUp, ClipboardList, ArrowRight } from "lucide-react";
 import { STUDENTS, COURSES, ANNOUNCEMENTS, TEACHER_ASSIGNMENTS, type Teacher, type Course } from "@/data/mockData";
 
 interface Props {
@@ -20,10 +20,6 @@ const TeacherDashboard = ({ teacher, onNavigate, onSelectClass }: Props) => {
         const t = s.tests.find((t) => t.subject === teacher.subject && t.test === "Mid-Term");
         return a + (t ? (t.marks / t.total) * 100 : 0);
       }, 0) / myStudents.length).toFixed(0)
-    : "0";
-
-  const avgAtt = myStudents.length > 0
-    ? (myStudents.reduce((a, s) => a + (s.attendance.present / s.attendance.total) * 100, 0) / myStudents.length).toFixed(0)
     : "0";
 
   return (

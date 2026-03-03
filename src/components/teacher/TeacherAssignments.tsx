@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, ArrowLeft, FileText, CheckCircle, Clock, XCircle, Download, Save, Eye } from "lucide-react";
+import { Plus, ArrowLeft, FileText, CheckCircle, Clock, XCircle, Save, Eye } from "lucide-react";
 import { TEACHER_ASSIGNMENTS, type Teacher, type TeacherAssignment } from "@/data/mockData";
 import { toast } from "sonner";
 

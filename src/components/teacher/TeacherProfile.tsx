@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Lock, Camera, Save, BookOpen, Calendar } from "lucide-react";
+import { User, Lock, Camera, Save, BookOpen } from "lucide-react";
 import type { Teacher } from "@/data/mockData";
 import { toast } from "sonner";
 

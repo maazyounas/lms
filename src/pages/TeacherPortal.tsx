@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
-  LayoutDashboard, BookOpen, Users, ClipboardCheck, Bell,
+  LayoutDashboard, BookOpen, Users, ClipboardCheck,
   User, CalendarOff, ClipboardList, Megaphone
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
-import { STUDENTS, COURSES, ANNOUNCEMENTS, TEACHERS, type Course } from "@/data/mockData";
+import { STUDENTS, ANNOUNCEMENTS, TEACHERS, type Course } from "@/data/mockData";
 import TeacherDashboard from "@/components/teacher/TeacherDashboard";
 import TeacherClasses from "@/components/teacher/TeacherClasses";
 import TeacherProfile from "@/components/teacher/TeacherProfile";

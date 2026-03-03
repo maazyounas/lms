@@ -13,6 +13,13 @@ export interface StudentAssignment {
   due: string;
   status: string;
   score: string;
+
+  question?: string;
+totalMarks?: number;
+chapterName?: string;
+chapterNumber?: number;
+submissionType?: "Handwritten" | "Word" | "PDF";
+instructions?: string;
 }
 
 export interface Student {
@@ -87,11 +94,48 @@ export const STUDENTS: Student[] = [
       { month: "Aug", gpa: 3.5 }, { month: "Sep", gpa: 3.6 }, { month: "Oct", gpa: 3.7 },
       { month: "Nov", gpa: 3.8 }, { month: "Dec", gpa: 3.9 }, { month: "Jan", gpa: 3.85 },
     ],
-    assignments: [
-      { title: "Algebra Worksheet Ch.5", subject: "Mathematics", due: "2026-02-25", status: "Submitted", score: "19/20" },
-      { title: "Lab Report: Optics", subject: "Physics", due: "2026-02-28", status: "Pending", score: "-" },
-      { title: "Essay: Climate Change", subject: "English", due: "2026-03-01", status: "Submitted", score: "18/20" },
-    ],
+   assignments: [
+  {
+    title: "Algebra Worksheet",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Algebra",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Essay: Climate Change",
+    subject: "English",
+    due: "2026-03-01",
+    status: "Submitted",
+    score: "18/20",
+    question: "Write an essay on climate change.",
+    totalMarks: 20,
+    chapterName: "Essay Writing",
+    chapterNumber: 6,
+    submissionType: "PDF",
+    instructions: "Minimum 500 words."
+  }
+],
+    
     behavior: [
       { date: "2025-11-05", type: "Positive", note: "Helped organize science fair" },
       { date: "2025-12-10", type: "Positive", note: "Won inter-school debate competition" },
@@ -118,10 +162,46 @@ export const STUDENTS: Student[] = [
       { month: "Nov", gpa: 3.0 }, { month: "Dec", gpa: 3.1 }, { month: "Jan", gpa: 3.0 },
     ],
     assignments: [
-      { title: "Algebra Worksheet Ch.5", subject: "Mathematics", due: "2026-02-25", status: "Late", score: "14/20" },
-      { title: "Lab Report: Optics", subject: "Physics", due: "2026-02-28", status: "Pending", score: "-" },
-      { title: "Essay: Climate Change", subject: "English", due: "2026-03-01", status: "Missing", score: "0/20" },
-    ],
+  {
+    title: "Algebra Worksheet",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Algebra",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Essay: Climate Change",
+    subject: "English",
+    due: "2026-03-01",
+    status: "Submitted",
+    score: "18/20",
+    question: "Write an essay on climate change.",
+    totalMarks: 20,
+    chapterName: "Essay Writing",
+    chapterNumber: 6,
+    submissionType: "PDF",
+    instructions: "Minimum 500 words."
+  }
+],
     behavior: [
       { date: "2025-10-20", type: "Warning", note: "Disrupted class during lecture" },
       { date: "2025-11-15", type: "Positive", note: "Improved test scores significantly" },
@@ -148,10 +228,46 @@ export const STUDENTS: Student[] = [
       { month: "Nov", gpa: 4.0 }, { month: "Dec", gpa: 4.0 }, { month: "Jan", gpa: 4.0 },
     ],
     assignments: [
-      { title: "Algebra Worksheet Ch.5", subject: "Mathematics", due: "2026-02-25", status: "Submitted", score: "20/20" },
-      { title: "Lab Report: Optics", subject: "Physics", due: "2026-02-28", status: "Submitted", score: "20/20" },
-      { title: "Essay: Climate Change", subject: "English", due: "2026-03-01", status: "Submitted", score: "19/20" },
-    ],
+  {
+    title: "Algebra Worksheet",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Algebra",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Essay: Climate Change",
+    subject: "English",
+    due: "2026-03-01",
+    status: "Submitted",
+    score: "18/20",
+    question: "Write an essay on climate change.",
+    totalMarks: 20,
+    chapterName: "Essay Writing",
+    chapterNumber: 6,
+    submissionType: "PDF",
+    instructions: "Minimum 500 words."
+  }
+],
     behavior: [
       { date: "2025-09-15", type: "Positive", note: "Class topper - received merit certificate" },
       { date: "2025-12-01", type: "Positive", note: "Led community service project" },
@@ -178,10 +294,46 @@ export const STUDENTS: Student[] = [
       { month: "Nov", gpa: 2.4 }, { month: "Dec", gpa: 2.5 }, { month: "Jan", gpa: 2.45 },
     ],
     assignments: [
-      { title: "Algebra Worksheet Ch.5", subject: "Mathematics", due: "2026-02-25", status: "Missing", score: "0/20" },
-      { title: "Lab Report: Optics", subject: "Physics", due: "2026-02-28", status: "Missing", score: "0/20" },
-      { title: "Essay: Climate Change", subject: "English", due: "2026-03-01", status: "Pending", score: "-" },
-    ],
+  {
+    title: "Algebra Worksheet",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Algebra",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Essay: Climate Change",
+    subject: "English",
+    due: "2026-03-01",
+    status: "Submitted",
+    score: "18/20",
+    question: "Write an essay on climate change.",
+    totalMarks: 20,
+    chapterName: "Essay Writing",
+    chapterNumber: 6,
+    submissionType: "PDF",
+    instructions: "Minimum 500 words."
+  }
+],
     behavior: [
       { date: "2025-10-05", type: "Warning", note: "Excessive absences - parent meeting scheduled" },
       { date: "2025-11-20", type: "Warning", note: "Incomplete homework multiple times" },
@@ -209,10 +361,46 @@ export const STUDENTS: Student[] = [
       { month: "Nov", gpa: 3.6 }, { month: "Dec", gpa: 3.65 }, { month: "Jan", gpa: 3.7 },
     ],
     assignments: [
-      { title: "Algebra Worksheet Ch.5", subject: "Mathematics", due: "2026-02-25", status: "Submitted", score: "18/20" },
-      { title: "Lab Report: Optics", subject: "Physics", due: "2026-02-28", status: "Submitted", score: "17/20" },
-      { title: "Essay: Climate Change", subject: "English", due: "2026-03-01", status: "Pending", score: "-" },
-    ],
+  {
+    title: "Algebra Worksheet",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Algebra",
+    subject: "Mathematics",
+    due: "2025-09-10",
+    score: "—",
+    status: "Pending",
+    question: "Solve all quadratic equations using factorization method.",
+    totalMarks: 20,
+    chapterName: "Quadratic Equations",
+    chapterNumber: 4,
+    submissionType: "Handwritten",
+    instructions: "Show complete steps. Upload clear scanned PDF."
+  },
+  {
+    title: "Essay: Climate Change",
+    subject: "English",
+    due: "2026-03-01",
+    status: "Submitted",
+    score: "18/20",
+    question: "Write an essay on climate change.",
+    totalMarks: 20,
+    chapterName: "Essay Writing",
+    chapterNumber: 6,
+    submissionType: "PDF",
+    instructions: "Minimum 500 words."
+  }
+],
     behavior: [
       { date: "2025-11-01", type: "Positive", note: "Active participant in extracurricular activities" },
     ],
@@ -238,7 +426,20 @@ export const STUDENTS: Student[] = [
       { month: "Nov", gpa: 3.5 }, { month: "Dec", gpa: 3.55 }, { month: "Jan", gpa: 3.6 },
     ],
     assignments: [
-      { title: "Algebra Worksheet Ch.5", subject: "Mathematics", due: "2026-02-25", status: "Submitted", score: "16/20" },
+      {
+  title: "Algebra Worksheet",
+  subject: "Mathematics",
+  due: "2025-09-10",
+  score: "—",
+  status: "Pending",
+
+  question: "Solve all quadratic equations using factorization method.",
+  totalMarks: 20,
+  chapterName: "Quadratic Equations",
+  chapterNumber: 4,
+  submissionType: "Handwritten",
+  instructions: "Show complete steps. Use blue/black pen. Upload clear scanned PDF."
+},
       { title: "Lab Report: Optics", subject: "Physics", due: "2026-02-28", status: "Submitted", score: "19/20" },
       { title: "Essay: Climate Change", subject: "English", due: "2026-03-01", status: "Late", score: "15/20" },
     ],
