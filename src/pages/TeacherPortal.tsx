@@ -11,6 +11,7 @@ import TeacherProfile from "@/components/teacher/TeacherProfile";
 import TeacherLeave from "@/components/teacher/TeacherLeave";
 import TeacherAssignments from "@/components/teacher/TeacherAssignments";
 import TeacherNotifications from "@/components/teacher/TeacherNotifications";
+import TeacherCreateQuiz from "@/components/teacher/TeacherCreateQuiz";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -19,6 +20,7 @@ const navItems = [
   { id: "profile", label: "My Profile", icon: User },
   { id: "leave", label: "Apply for Leave", icon: CalendarOff },
   { id: "announcements", label: "Announcements", icon: Megaphone },
+  { id: "createQuiz", label: "Create Quiz", icon: ClipboardCheck },
 ];
 
 const currentTeacher = TEACHERS[0];
@@ -48,6 +50,8 @@ const TeacherPortal = () => {
         return <TeacherLeave />;
       case "assignments":
         return <TeacherAssignments teacher={teacher} />;
+      case "createQuiz":
+        return <TeacherCreateQuiz teacher={teacher} />;
       case "announcements":
         return (
           <div>

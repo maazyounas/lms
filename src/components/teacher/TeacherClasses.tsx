@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, Users, BookOpen, TrendingUp, Clock } from "lucide-react";
-import { STUDENTS, COURSES, type Teacher, type Course } from "@/data/mockData";
+import { ArrowLeft, Users, BookOpen, TrendingUp, Clock, ChevronDown, ChevronUp, FileText, Download, Eye } from "lucide-react";
+import { STUDENTS, COURSES, TEACHER_ASSIGNMENTS, type Teacher, type Course, type Student, type StudentAssignment } from "@/data/mockData";
 
 interface Props {
   teacher: Teacher;
@@ -17,10 +17,10 @@ const gradeColor = (g: string) => {
 
 const TeacherClasses = ({ teacher, selectedClass, onSelectClass }: Props) => {
   const myCourses = COURSES.filter((c) => c.teacher === teacher.name);
-  const [studentTab, setStudentTab] = useState<"performance" | "attendance">("performance");
+  const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
 
   if (selectedClass) {
-    // Get students in this class grade
+    // Get students in this class grade (for demo, we use all students)
     const classStudents = STUDENTS; // all students for demo
     const avgScore = classStudents.length > 0
       ? (classStudents.reduce((a, s) => {
@@ -28,6 +28,10 @@ const TeacherClasses = ({ teacher, selectedClass, onSelectClass }: Props) => {
           return a + (t ? (t.marks / t.total) * 100 : 0);
         }, 0) / classStudents.length).toFixed(0)
       : "0";
+
+    const toggleStudent = (studentId: number) => {
+      setExpandedStudentId(expandedStudentId === studentId ? null : studentId);
+    };
 
     return (
       <div>
@@ -72,75 +76,149 @@ const TeacherClasses = ({ teacher, selectedClass, onSelectClass }: Props) => {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-4">
-          {(["performance", "attendance"] as const).map((t) => (
-            <button key={t} onClick={() => setStudentTab(t)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${studentTab === t ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}>
-              {t}
-            </button>
-          ))}
-        </div>
+        {/* Student List */}
+        <div className="space-y-3">
+          {classStudents.map((s) => {
+            const subTests = s.tests.filter((t) => t.subject === teacher.subject);
+            const midTerm = subTests.find((t) => t.test === "Mid-Term");
+            const quiz = subTests.find((t) => t.test !== "Mid-Term" && t.test !== "Lab Practical");
+            const avg = subTests.length > 0 ? subTests.reduce((a, t) => a + (t.marks / t.total) * 100, 0) / subTests.length : 0;
 
-        {/* Student Table */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  {studentTab === "performance"
-                    ? ["Student", "Grade", "Mid-Term", "Quiz", "Average", "Grade"].map((h) => (
-                        <th key={h} className="text-left text-xs font-semibold text-muted-foreground uppercase px-5 py-3">{h}</th>
-                      ))
-                    : ["Student", "Grade", "Present", "Absent", "Late", "Rate"].map((h) => (
-                        <th key={h} className="text-left text-xs font-semibold text-muted-foreground uppercase px-5 py-3">{h}</th>
-                      ))
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                {classStudents.map((s) => {
-                  const subTests = s.tests.filter((t) => t.subject === teacher.subject);
-                  const midTerm = subTests.find((t) => t.test === "Mid-Term");
-                  const quiz = subTests.find((t) => t.test !== "Mid-Term" && t.test !== "Lab Practical");
-                  const avg = subTests.length > 0 ? subTests.reduce((a, t) => a + (t.marks / t.total) * 100, 0) / subTests.length : 0;
-                  const attRate = ((s.attendance.present / s.attendance.total) * 100).toFixed(0);
+            // Filter assignments for this teacher's subject
+            const subjectAssignments = s.assignments.filter(a => a.subject === teacher.subject);
 
-                  return (
-                    <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">{s.avatar}</div>
-                          <span className="text-sm font-medium text-foreground">{s.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-sm text-foreground">{s.grade}</td>
-                      {studentTab === "performance" ? (
-                        <>
-                          <td className="px-5 py-3 text-sm text-foreground">{midTerm ? `${midTerm.marks}/${midTerm.total}` : "-"}</td>
-                          <td className="px-5 py-3 text-sm text-foreground">{quiz ? `${quiz.marks}/${quiz.total}` : "-"}</td>
-                          <td className="px-5 py-3">
-                            <span className={`text-sm font-bold ${avg >= 80 ? "text-success" : avg >= 60 ? "text-warning" : "text-destructive"}`}>{avg.toFixed(0)}%</span>
-                          </td>
-                          <td className="px-5 py-3">
-                            <span className={`text-sm font-bold ${midTerm ? gradeColor(midTerm.grade) : "text-muted-foreground"}`}>{midTerm?.grade || "-"}</span>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-5 py-3 text-sm text-success">{s.attendance.present}</td>
-                          <td className="px-5 py-3 text-sm text-destructive">{s.attendance.absent}</td>
-                          <td className="px-5 py-3 text-sm text-warning">{s.attendance.late}</td>
-                          <td className="px-5 py-3">
-                            <span className={`text-sm font-bold ${Number(attRate) >= 90 ? "text-success" : Number(attRate) >= 75 ? "text-warning" : "text-destructive"}`}>{attRate}%</span>
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            // Also include submissions from TEACHER_ASSIGNMENTS if needed (but they might duplicate)
+            // We'll just use student's own assignments array as it's comprehensive.
+
+            const isExpanded = expandedStudentId === s.id;
+
+            return (
+              <div key={s.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                {/* Student Row (clickable) */}
+                <div
+                  onClick={() => toggleStudent(s.id)}
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                      {s.avatar}
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{s.name}</p>
+                      <p className="text-xs text-muted-foreground">ID: STU-{String(s.id).padStart(4, "0")} · Grade: {s.grade}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <span className={`text-sm font-bold ${avg >= 80 ? "text-success" : avg >= 60 ? "text-warning" : "text-destructive"}`}>
+                        {avg.toFixed(0)}% Avg
+                      </span>
+                    </div>
+                    {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                  </div>
+                </div>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="border-t border-border p-4 bg-muted/10">
+                    <h4 className="font-semibold text-foreground mb-3">📝 Tests & Quizzes</h4>
+                    {subTests.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No tests recorded.</p>
+                    ) : (
+                      <div className="overflow-x-auto mb-4">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/30">
+                            <tr>
+                              <th className="text-left p-2">Test</th>
+                              <th className="text-left p-2">Marks</th>
+                              <th className="text-left p-2">Total</th>
+                              <th className="text-left p-2">%</th>
+                              <th className="text-left p-2">Grade</th>
+                              <th className="text-left p-2">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {subTests.map((test, idx) => (
+                              <tr key={idx} className="border-b border-border">
+                                <td className="p-2 font-medium">{test.test}</td>
+                                <td className="p-2">{test.marks}</td>
+                                <td className="p-2">{test.total}</td>
+                                <td className="p-2">{((test.marks / test.total) * 100).toFixed(0)}%</td>
+                                <td className={`p-2 font-bold ${gradeColor(test.grade)}`}>{test.grade}</td>
+                                <td className="p-2">{new Date(test.date).toLocaleDateString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <h4 className="font-semibold text-foreground mb-3">📂 Assignments</h4>
+                    {subjectAssignments.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No assignments for this subject.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {subjectAssignments.map((ass, idx) => (
+                          <div key={idx} className="bg-card border border-border rounded-lg p-3">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="font-medium text-foreground">{ass.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Due: {new Date(ass.due).toLocaleDateString()} · Status: 
+                                  <span className={`ml-1 ${ass.status === "Submitted" ? "text-success" : ass.status === "Late" ? "text-destructive" : "text-warning"}`}>
+                                    {ass.status}
+                                  </span>
+                                </p>
+                                {ass.question && <p className="text-sm mt-1">{ass.question}</p>}
+                                {ass.totalMarks && <p className="text-xs text-muted-foreground mt-1">Total Marks: {ass.totalMarks}</p>}
+                                {ass.score && <p className="text-sm font-semibold mt-1">Score: {ass.score}</p>}
+                              </div>
+                              {/* If there's a file associated, show view button */}
+                              {/* In mock data, assignments don't have file links, but we can simulate */}
+                              {ass.status === "Submitted" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // In a real app, this would open the PDF
+                                    alert(`Viewing submission for ${ass.title} (simulated PDF)`);
+                                  }}
+                                  className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
+                                  title="View Submission"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                            {/* Additional metadata */}
+                            {(ass.chapterName || ass.submissionType) && (
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                {ass.chapterName && <span>📘 {ass.chapterName}</span>}
+                                {ass.submissionType && <span>📎 {ass.submissionType}</span>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Option to recheck/give feedback - could be a button */}
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Navigate to grading or open assignment review
+                          alert(`Recheck/grading for ${s.name} - feature coming soon`);
+                        }}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Grade / Recheck
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
