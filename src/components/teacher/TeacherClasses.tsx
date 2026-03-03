@@ -44,7 +44,7 @@ const TeacherClasses = ({ teacher, selectedClass, onSelectClass }: Props) => {
             </div>
             <div className="flex gap-4">
               {[
-                { label: "Students", value: selectedClass.students, icon: Users },
+                { label: "Students", value: classStudents.length, icon: Users },
                 { label: "Avg Score", value: `${avgScore}%`, icon: TrendingUp },
                 { label: "Progress", value: `${selectedClass.progress}%`, icon: BookOpen },
               ].map((s) => (
@@ -174,7 +174,7 @@ const TeacherClasses = ({ teacher, selectedClass, onSelectClass }: Props) => {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>📍 {c.room}</p>
                 <p>🕐 {c.schedule}</p>
-                <p>👥 {c.students} students</p>
+                <p>👥 {classStudents.length} students</p>
                 <p>📊 Avg Score: {avgScore}%</p>
               </div>
               <div className="mt-4">

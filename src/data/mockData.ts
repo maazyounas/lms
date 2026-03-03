@@ -524,6 +524,11 @@ export interface TeacherAssignment {
   totalMarks: number;
   description: string;
   createdDate: string;
+  question?: string;
+  chapterName?: string;
+  chapterNumber?: number;
+  submissionType?: "Handwritten" | "Word" | "PDF";
+  instructions?: string;
   submissions: {
     studentId: number;
     studentName: string;
