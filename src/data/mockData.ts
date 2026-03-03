@@ -49,11 +49,19 @@ export interface Course {
   name: string;
   code: string;
   teacher: string;
-  students: number;
+  teacherId: number;
+  description: string;
   schedule: string;
   room: string;
   credits: number;
   progress: number;
+
+  pastPapers: {
+    title: string;
+    year: string;
+    totalMarks: number;
+    file: string;
+  }[];
 }
 
 export interface Announcement {
@@ -67,11 +75,12 @@ export interface Announcement {
 
 export interface TimetableEntry {
   time: string;
-  mon: string;
-  tue: string;
-  wed: string;
-  thu: string;
-  fri: string;
+  mon?: string;
+  tue?: string;
+  wed?: string;
+  thu?: string;
+  fri?: string;
+  sat?: string;   // ✅ Added Saturday
 }
 
 export const STUDENTS: Student[] = [
@@ -451,13 +460,24 @@ export const STUDENTS: Student[] = [
 ];
 
 export const COURSES: Course[] = [
-  { id: 1, name: "Mathematics", code: "MATH-10", teacher: "Mr. Imran Ali", students: 32, schedule: "Mon, Wed, Fri - 8:00 AM", room: "Room 201", credits: 5, progress: 68 },
-  { id: 2, name: "Physics", code: "PHY-10", teacher: "Dr. Sana Fatima", students: 30, schedule: "Tue, Thu - 9:00 AM", room: "Lab 3", credits: 5, progress: 62 },
-  { id: 3, name: "English", code: "ENG-10", teacher: "Ms. Hira Nawaz", students: 32, schedule: "Mon, Wed - 10:00 AM", room: "Room 105", credits: 4, progress: 71 },
-  { id: 4, name: "Chemistry", code: "CHEM-10", teacher: "Mr. Waqas Ahmed", students: 30, schedule: "Tue, Thu - 11:00 AM", room: "Lab 1", credits: 5, progress: 58 },
-  { id: 5, name: "Urdu", code: "URDU-10", teacher: "Ms. Nazia Bibi", students: 32, schedule: "Mon, Fri - 12:00 PM", room: "Room 302", credits: 4, progress: 75 },
-  { id: 6, name: "Computer Science", code: "CS-10", teacher: "Mr. Faisal Iqbal", students: 28, schedule: "Wed, Fri - 2:00 PM", room: "Computer Lab", credits: 4, progress: 80 },
-];
+ {
+    id: 1,
+    name: "Mathematics",
+    code: "MATH-10",
+    teacher: "Mr. Imran Ali",
+    teacherId: 1,
+    description:
+      "This course covers Algebra, Trigonometry, Statistics and Probability.",
+    schedule: "Mon, Wed, Fri - 8:00 AM",
+    room: "Room 201",
+    credits: 5,
+    progress: 68,
+
+    pastPapers: [
+      { title: "Mid Term Paper", year: "2025", totalMarks: 50, file: "math_mid_2025.pdf" },
+      { title: "Final Term Paper", year: "2024", totalMarks: 100, file: "math_final_2024.pdf" },
+    ],
+  }, ];
 
 export const ANNOUNCEMENTS: Announcement[] = [
   { id: 1, title: "Annual Sports Day - Registration Open", date: "2026-02-20", priority: "high", content: "Register your students for the Annual Sports Day by March 5th. Events include athletics, cricket, and football.", author: "Admin Office" },
@@ -468,13 +488,13 @@ export const ANNOUNCEMENTS: Announcement[] = [
 ];
 
 export const TIMETABLE: TimetableEntry[] = [
-  { time: "8:00 - 8:45", mon: "Mathematics", tue: "Physics", wed: "Mathematics", thu: "Chemistry", fri: "Mathematics" },
-  { time: "8:50 - 9:35", mon: "English", tue: "Mathematics", wed: "Physics", thu: "Physics", fri: "English" },
-  { time: "9:40 - 10:25", mon: "Chemistry", tue: "English", wed: "English", thu: "Urdu", fri: "Chemistry" },
-  { time: "10:25 - 10:45", mon: "BREAK", tue: "BREAK", wed: "BREAK", thu: "BREAK", fri: "BREAK" },
-  { time: "10:45 - 11:30", mon: "Urdu", tue: "Chemistry", wed: "Urdu", thu: "English", fri: "Comp. Sci" },
-  { time: "11:35 - 12:20", mon: "Physics", tue: "Comp. Sci", wed: "Comp. Sci", thu: "Mathematics", fri: "Urdu" },
-  { time: "12:20 - 1:00", mon: "Assembly", tue: "Sports", wed: "Library", thu: "Assembly", fri: "Juma Prayer" },
+  { time: "8:00 AM - 8:45 AM", mon: "Mathematics", tue: "Physics", wed: "Mathematics", thu: "Chemistry", fri: "Mathematics", sat: "-" },
+  { time: "8:50 AM - 9:35 AM", mon: "English", tue: "Mathematics", wed: "Physics", thu: "Physics", fri: "English", sat: "-" },
+  { time: "9:40 AM - 10:25 AM", mon: "Chemistry", tue: "English", wed: "English", thu: "Urdu", fri: "Chemistry", sat: "-" },
+  { time: "10:25 AM - 10:45 AM", mon: "BREAK", tue: "BREAK", wed: "BREAK", thu: "BREAK", fri: "BREAK", sat: "BREAK" },
+  { time: "10:45 AM - 11:30 AM", mon: "Urdu", tue: "Chemistry", wed: "Urdu", thu: "English", fri: "Comp. Sci", sat: "-" },
+  { time: "11:35 AM - 12:20 PM", mon: "Physics", tue: "Comp. Sci", wed: "Comp. Sci", thu: "Mathematics", fri: "Urdu", sat: "-" },
+  { time: "12:20 PM - 1:00 PM", mon: "Assembly", tue: "Sports", wed: "Library", thu: "Assembly", fri: "Juma Prayer", sat: "-" },
 ];
 
 export interface Teacher {

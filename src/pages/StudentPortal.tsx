@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, FileText, UserCheck, ClipboardList, Calendar,
-  User, CalendarOff, Megaphone
+  User, CalendarOff, Megaphone,BookOpen
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { STUDENTS, ANNOUNCEMENTS } from "@/data/mockData";
@@ -13,6 +13,7 @@ import StudentAssignments from "@/components/student/StudentAssignments";
 import StudentTimetable from "@/components/student/StudentTimetable";
 import StudentLeave from "@/components/student/StudentLeave";
 import NotificationDropdown from "@/components/student/NotificationDropdown";
+import StudentCourses from "@/components/student/StudentCourses";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +24,7 @@ const navItems = [
   { id: "timetable", label: "Timetable", icon: Calendar },
   { id: "leave", label: "Apply for Leave", icon: CalendarOff },
   { id: "announcements", label: "Announcements", icon: Megaphone },
+  { id: "courses", label: "My Courses", icon: BookOpen },
 ];
 
 const currentStudent = STUDENTS[0];
@@ -47,6 +49,8 @@ const StudentPortal = () => {
         return <StudentTimetable />;
       case "leave":
         return <StudentLeave />;
+        case "courses":
+        return <StudentCourses />;
       case "announcements":
         return (
           <div>
