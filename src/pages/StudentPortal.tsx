@@ -5,15 +5,15 @@ import {
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { STUDENTS, ANNOUNCEMENTS } from "@/data/mockData";
-import StudentDashboard from "@/components/student/StudentDashboard";
-import StudentProfile from "@/components/student/StudentProfile";
-import StudentGrades from "@/components/student/StudentGrades";
-import StudentAttendance from "@/components/student/StudentAttendance";
-import StudentAssignments from "@/components/student/StudentAssignments";
-import StudentTimetable from "@/components/student/StudentTimetable";
-import StudentLeave from "@/components/student/StudentLeave";
-import NotificationDropdown from "@/components/student/NotificationDropdown";
-import StudentCourses from "@/components/student/StudentCourses";
+import StudentDashboard from "@/components/student/dashboard/components/StudentDashboard";
+import StudentProfile from "@/components/student/profile/components/StudentProfile";
+import StudentGrades from "@/components/student/grades/components/StudentGrades";
+import StudentAttendance from "@/components/student/attendance/components/StudentAttendance";
+import StudentAssignments from "@/components/student/assignments/components/StudentAssignments";
+import StudentTimetable from "@/components/student/timetable/components/StudentTimetable";
+import StudentLeave from "@/components/student/leave/components/StudentLeave";
+import NotificationBell from "@/components/student/notifications/components/NotificationBell";
+import StudentCourses from "@/components/student/courses/components/StudentCourses";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -84,7 +84,7 @@ const StudentPortal = () => {
       navItems={navItems}
       activeNav={activeNav}
       onNavChange={setActiveNav}
-      notificationSlot={<NotificationDropdown student={student} onNavigate={setActiveNav} />}
+      notificationSlot={<NotificationBell student={student} onNavigate={setActiveNav} />}
     >
       {renderContent()}
     </PortalLayout>

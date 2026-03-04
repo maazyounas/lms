@@ -52,7 +52,7 @@ interface Props {
   onNavigate: (nav: string) => void;
 }
 
-const NotificationDropdown = ({ student, onNavigate }: Props) => {
+const NotificationBell = ({ student, onNavigate }: Props) => {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(() => generateNotifications(student));
   const ref = useRef<HTMLDivElement>(null);
@@ -143,4 +143,4 @@ const NotificationDropdown = ({ student, onNavigate }: Props) => {
   );
 };
 
-export default NotificationDropdown;
+export default NotificationBell;

@@ -5,13 +5,13 @@ import {
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { STUDENTS, ANNOUNCEMENTS, TEACHERS, type Course } from "@/data/mockData";
-import TeacherDashboard from "@/components/teacher/TeacherDashboard";
-import TeacherClasses from "@/components/teacher/TeacherClasses";
-import TeacherProfile from "@/components/teacher/TeacherProfile";
-import TeacherLeave from "@/components/teacher/TeacherLeave";
-import TeacherAssignments from "@/components/teacher/TeacherAssignments";
-import TeacherNotifications from "@/components/teacher/TeacherNotifications";
-import TeacherCreateQuiz from "@/components/teacher/TeacherCreateQuiz";
+import TeacherDashboard from "@/components/teacher/dashboard/TeacherDashboard";
+import TeacherClasses from "@/components/teacher/classes/TeacherClasses";
+import TeacherProfile from "@/components/teacher/profile/TeacherProfile";
+import TeacherLeave from "@/components/teacher/leave/TeacherLeave";
+import TeacherAssignments from "@/components/teacher/assignments/TeacherAssignments";
+import TeacherNotifications from "@/components/teacher/notifications/TeacherNotifications";
+import TeacherCreateQuiz from "@/components/teacher/quizzes/TeacherCreateQuiz";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
