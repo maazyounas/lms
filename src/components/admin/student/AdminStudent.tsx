@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, UserPlus, KeyRound } from "lucide-react";
 import { TIMETABLE, type Student } from "@/data/mockData";
+import type { AuditLogEntry } from "@/components/admin/types";
 import { toast } from "sonner";
 
 interface Props {
   students: Student[];
   onStudentsChange: (next: Student[]) => void;
   onOpenFeeManagement: () => void;
+  onAuditLog?: (entry: Omit<AuditLogEntry, "id" | "createdAt">) => void;
+  currentAdmin?: string;
 }
 
 type Section = "enroll" | "search" | "reset";
@@ -32,7 +35,13 @@ const getInitials = (name: string) =>
 
 const studentCode = (id: number) => `STU-${String(id).padStart(4, "0")}`;
 
-const AdminStudent = ({ students, onStudentsChange, onOpenFeeManagement }: Props) => {
+const AdminStudent = ({
+  students,
+  onStudentsChange,
+  onOpenFeeManagement,
+  onAuditLog,
+  currentAdmin = "Admin User",
+}: Props) => {
   const [activeSection, setActiveSection] = useState<Section>("enroll");
 
   const [enrollForm, setEnrollForm] = useState({
@@ -141,6 +150,12 @@ const AdminStudent = ({ students, onStudentsChange, onOpenFeeManagement }: Props
     };
 
     onStudentsChange([...students, newStudent]);
+    onAuditLog?.({
+      actor: currentAdmin,
+      module: "Student",
+      action: "Enrolled Student",
+      details: `${newStudent.name} (${studentCode(newStudent.id)}) enrolled in ${newStudent.grade}.`,
+    });
     setEnrollForm({ name: "", id: "", className: "", subjects: [] });
     toast.success(`Student enrolled. Default password: ${numericId}`);
   };
@@ -160,6 +175,12 @@ const AdminStudent = ({ students, onStudentsChange, onOpenFeeManagement }: Props
       return;
     }
 
+    onAuditLog?.({
+      actor: currentAdmin,
+      module: "Security",
+      action: "Reset Student Password",
+      details: `Password reset for ${target.name} (${studentCode(target.id)}).`,
+    });
     toast.success(`Password reset. Default password is ${target.id}`);
     setResetId("");
   };
@@ -190,6 +211,12 @@ const AdminStudent = ({ students, onStudentsChange, onOpenFeeManagement }: Props
 
     const next = students.map((s) => (s.id === editableStudent.id ? editableStudent : s));
     onStudentsChange(next);
+    onAuditLog?.({
+      actor: currentAdmin,
+      module: "Student",
+      action: "Updated Student Profile",
+      details: `${editableStudent.name} (${studentCode(editableStudent.id)}) information updated.`,
+    });
     toast.success("Student information updated");
   };
 

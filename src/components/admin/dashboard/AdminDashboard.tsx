@@ -1,13 +1,21 @@
-import { STUDENTS, TEACHERS, type Announcement, type Student } from "@/data/mockData";
+import type { Announcement, Student } from "@/data/mockData";
 
 interface Props {
+  students: Student[];
+  teachersCount: number;
   announcements: Announcement[];
   pendingLeaves: number;
   onOpenStudent: (student: Student) => void;
 }
 
-const AdminDashboard = ({ announcements, pendingLeaves, onOpenStudent }: Props) => {
-  const topStudents = [...STUDENTS]
+const AdminDashboard = ({
+  students,
+  teachersCount,
+  announcements,
+  pendingLeaves,
+  onOpenStudent,
+}: Props) => {
+  const topStudents = [...students]
     .sort((a, b) => (b.progress.at(-1)?.gpa || 0) - (a.progress.at(-1)?.gpa || 0))
     .slice(0, 5);
 
@@ -18,11 +26,11 @@ const AdminDashboard = ({ announcements, pendingLeaves, onOpenStudent }: Props) 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Students</p>
-          <p className="text-2xl font-bold text-foreground">{STUDENTS.length}</p>
+          <p className="text-2xl font-bold text-foreground">{students.length}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Teachers</p>
-          <p className="text-2xl font-bold text-foreground">{TEACHERS.length}</p>
+          <p className="text-2xl font-bold text-foreground">{teachersCount}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Pending Leaves</p>
@@ -31,7 +39,7 @@ const AdminDashboard = ({ announcements, pendingLeaves, onOpenStudent }: Props) 
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Students With Dues</p>
           <p className="text-2xl font-bold text-foreground">
-            {STUDENTS.filter((s) => s.fees.pending > 0).length}
+            {students.filter((s) => s.fees.pending > 0).length}
           </p>
         </div>
       </div>
