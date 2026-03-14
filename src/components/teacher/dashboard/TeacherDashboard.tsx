@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import {
   STUDENTS,
+  TIMETABLE,
   COURSES,
   ANNOUNCEMENTS,
   TEACHER_ASSIGNMENTS,
@@ -186,6 +187,16 @@ const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <InfoItem icon={User} label="Full Name" value={selectedStudent.name} />
             <InfoItem
+              icon={Users}
+              label="Student ID"
+              value={`STU-${String(selectedStudent.id).padStart(4, "0")}`}
+            />
+            <InfoItem
+              icon={BookOpen}
+              label="Class"
+              value={selectedStudent.grade}
+            />
+            <InfoItem
               icon={Calendar}
               label="Date of Birth"
               value={new Date(selectedStudent.dob).toLocaleDateString()}
@@ -198,11 +209,8 @@ const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
               label="Address"
               value={selectedStudent.address}
             />
-            <InfoItem
-              icon={User}
-              label="Guardian"
-              value={`${selectedStudent.guardian} (${selectedStudent.guardianPhone})`}
-            />
+            <InfoItem icon={User} label="Guardian" value={selectedStudent.guardian} />
+            <InfoItem icon={Phone} label="Guardian Phone" value={selectedStudent.guardianPhone} />
             <InfoItem
               icon={Calendar}
               label="Enrollment Date"
@@ -433,6 +441,37 @@ const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
                   <div className="text-lg font-bold text-primary">{p.gpa}</div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Class Timetable */}
+          <div className="mb-6">
+            <h4 className="font-medium text-foreground mb-3">Class Timetable</h4>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30">
+                  <tr>
+                    <th className="text-left p-2">Time</th>
+                    <th className="text-left p-2">Mon</th>
+                    <th className="text-left p-2">Tue</th>
+                    <th className="text-left p-2">Wed</th>
+                    <th className="text-left p-2">Thu</th>
+                    <th className="text-left p-2">Fri</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {TIMETABLE.map((slot) => (
+                    <tr key={slot.time} className="border-b border-border last:border-0">
+                      <td className="p-2">{slot.time}</td>
+                      <td className="p-2">{slot.mon || "-"}</td>
+                      <td className="p-2">{slot.tue || "-"}</td>
+                      <td className="p-2">{slot.wed || "-"}</td>
+                      <td className="p-2">{slot.thu || "-"}</td>
+                      <td className="p-2">{slot.fri || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

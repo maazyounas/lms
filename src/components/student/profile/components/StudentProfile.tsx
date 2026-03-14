@@ -259,6 +259,62 @@ const StudentProfile = ({ student }: Props) => {
           </div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="font-semibold text-foreground mb-4">Fee Overview</h3>
+          <div className="space-y-3">
+            {[
+              { label: "Total Fees", value: `Rs. ${student.fees.total.toLocaleString()}` },
+              { label: "Paid", value: `Rs. ${student.fees.paid.toLocaleString()}` },
+              { label: "Pending", value: `Rs. ${student.fees.pending.toLocaleString()}` },
+              { label: "Status", value: student.fees.status },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between gap-4"
+              >
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <span className="text-sm text-foreground font-medium">
+                  {item.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="font-semibold text-foreground mb-4">Behavior Notes</h3>
+          {student.behavior.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No behavior records available.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {student.behavior.map((entry, idx) => (
+                <div
+                  key={`${entry.date}-${idx}`}
+                  className="rounded-lg border border-border/60 bg-muted/30 p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {entry.date}
+                    </span>
+                    <span className="text-xs font-semibold text-foreground">
+                      {entry.type}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-foreground">
+                    {entry.note}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

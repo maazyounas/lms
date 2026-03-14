@@ -218,7 +218,7 @@ const AdminPortal = () => {
         );
       
       case "attendance":
-        return <AdminAttendance />;
+        return <AdminAttendance students={students} />;
       case "leave-requests":
         return <AdminLeaveRequests onPendingCountChange={setPendingLeaves} />;
       case "announcements":
