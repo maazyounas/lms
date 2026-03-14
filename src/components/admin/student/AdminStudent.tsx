@@ -47,6 +47,9 @@ const AdminStudent = ({
   const [enrollForm, setEnrollForm] = useState({
     name: "",
     id: "",
+    gender: "",
+    guardian: "",
+    guardianPhone: "",
     className: "",
     subjects: [] as string[],
   });
@@ -56,6 +59,7 @@ const AdminStudent = ({
   const [editableStudent, setEditableStudent] = useState<Student | null>(null);
 
   const [resetId, setResetId] = useState("");
+  const [lastEnrolledId, setLastEnrolledId] = useState<number | null>(null);
 
   const classes = useMemo(() => {
     const fromData = students.map((s) => s.grade);
@@ -66,6 +70,22 @@ const AdminStudent = ({
     const fromData = students.flatMap((s) => s.tests.map((t) => t.subject));
     return Array.from(new Set([...DEFAULT_SUBJECTS, ...fromData])).sort();
   }, [students]);
+
+  const classSubjectOptions = useMemo(() => {
+    return classes.reduce<Record<string, string[]>>((acc, className) => {
+      const classSubjects = students
+        .filter((s) => s.grade === className)
+        .flatMap((s) => s.tests.map((t) => t.subject));
+      const unique = Array.from(new Set([...DEFAULT_SUBJECTS, ...classSubjects])).sort();
+      acc[className] = unique;
+      return acc;
+    }, {});
+  }, [classes, students]);
+
+  const activeSubjectOptions =
+    enrollForm.className && classSubjectOptions[enrollForm.className]
+      ? classSubjectOptions[enrollForm.className]
+      : subjectOptions;
 
   const pendingFeeCount = students.filter((s) => s.fees.pending > 0).length;
 
@@ -106,9 +126,22 @@ const AdminStudent = ({
     const name = enrollForm.name.trim();
     const className = enrollForm.className.trim();
     const numericId = Number(enrollForm.id);
+    const guardianName = enrollForm.guardian.trim();
+    const guardianPhone = enrollForm.guardianPhone.trim();
+    const gender = enrollForm.gender.trim();
 
     if (!name || !className || !Number.isInteger(numericId) || numericId <= 0) {
       toast.error("Enter valid name, ID and class");
+      return;
+    }
+
+    if (!gender) {
+      toast.error("Select gender");
+      return;
+    }
+
+    if (!guardianName || !guardianPhone) {
+      toast.error("Enter guardian name and phone");
       return;
     }
 
@@ -126,11 +159,11 @@ const AdminStudent = ({
       email: `${name.toLowerCase().replace(/\s+/g, ".")}@school.edu`,
       grade: className,
       avatar: getInitials(name),
-      gender: "Not Set",
+      gender,
       dob: "2010-01-01",
       phone: "",
-      guardian: "",
-      guardianPhone: "",
+      guardian: guardianName,
+      guardianPhone,
       address: "",
       enrollDate: new Date().toISOString().slice(0, 10),
       status: "Active",
@@ -156,7 +189,16 @@ const AdminStudent = ({
       action: "Enrolled Student",
       details: `${newStudent.name} (${studentCode(newStudent.id)}) enrolled in ${newStudent.grade}.`,
     });
-    setEnrollForm({ name: "", id: "", className: "", subjects: [] });
+    setLastEnrolledId(numericId);
+    setEnrollForm({
+      name: "",
+      id: "",
+      gender: "",
+      guardian: "",
+      guardianPhone: "",
+      className: "",
+      subjects: [],
+    });
     toast.success(`Student enrolled. Default password: ${numericId}`);
   };
 
@@ -287,17 +329,57 @@ const AdminStudent = ({
               placeholder="Student Name"
               className="rounded-lg border border-border bg-background px-3 py-2"
             />
+            <div className="space-y-1">
+              <input
+                value={enrollForm.id}
+                onChange={(e) => setEnrollForm((prev) => ({ ...prev, id: e.target.value }))}
+                placeholder="Unique Student ID"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                {lastEnrolledId
+                  ? `Recently enrolled ID: ${studentCode(lastEnrolledId)}`
+                  : "Pick a new ID that has not been used before."}
+              </p>
+            </div>
+
+            <select
+              value={enrollForm.gender}
+              onChange={(e) =>
+                setEnrollForm((prev) => ({ ...prev, gender: e.target.value }))
+              }
+              className="rounded-lg border border-border bg-background px-3 py-2"
+            >
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+
             <input
-              value={enrollForm.id}
-              onChange={(e) => setEnrollForm((prev) => ({ ...prev, id: e.target.value }))}
-              placeholder="Unique Student ID"
+              value={enrollForm.guardian}
+              onChange={(e) => setEnrollForm((prev) => ({ ...prev, guardian: e.target.value }))}
+              placeholder="Guardian Name"
+              className="rounded-lg border border-border bg-background px-3 py-2"
+            />
+
+            <input
+              value={enrollForm.guardianPhone}
+              onChange={(e) =>
+                setEnrollForm((prev) => ({ ...prev, guardianPhone: e.target.value }))
+              }
+              placeholder="Guardian Phone"
               className="rounded-lg border border-border bg-background px-3 py-2"
             />
 
             <select
               value={enrollForm.className}
               onChange={(e) =>
-                setEnrollForm((prev) => ({ ...prev, className: e.target.value }))
+                setEnrollForm((prev) => ({
+                  ...prev,
+                  className: e.target.value,
+                  subjects: [],
+                }))
               }
               className="rounded-lg border border-border bg-background px-3 py-2"
             >
@@ -313,7 +395,7 @@ const AdminStudent = ({
           <div>
             <p className="text-sm font-medium text-foreground mb-2">Select Subjects</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {subjectOptions.map((subject) => (
+              {activeSubjectOptions.map((subject) => (
                 <label
                   key={subject}
                   className="flex items-center gap-2 rounded-lg border border-border p-2 text-sm"

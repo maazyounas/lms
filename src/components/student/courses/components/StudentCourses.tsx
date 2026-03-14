@@ -36,7 +36,6 @@ const StudentCourses = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <InfoCard label="Schedule" value={selectedCourse.schedule} />
             <InfoCard label="Room" value={selectedCourse.room} />
-            <InfoCard label="Credits" value={selectedCourse.credits.toString()} />
           </div>
 
           {/* Description */}
@@ -100,7 +99,6 @@ const StudentCourses = () => {
     );
   }
 
-  // ---------------- COURSE LIST VIEW ----------------
   return (
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-6">

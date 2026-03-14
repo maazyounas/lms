@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, FileText, UserCheck, ClipboardList, Calendar,
-  User, CalendarOff, Megaphone,BookOpen
+  User, CalendarOff, Megaphone, BookOpen
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { STUDENTS, ANNOUNCEMENTS } from "@/data/mockData";
@@ -17,14 +17,14 @@ import StudentCourses from "@/components/student/courses/components/StudentCours
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "profile", label: "My Profile", icon: User },
+  { id: "courses", label: "My Courses", icon: BookOpen },
   { id: "grades", label: "My Grades", icon: FileText },
   { id: "attendance", label: "Attendance", icon: UserCheck },
   { id: "assignments", label: "Assignments", icon: ClipboardList },
   { id: "timetable", label: "Timetable", icon: Calendar },
-  { id: "leave", label: "Apply for Leave", icon: CalendarOff },
   { id: "announcements", label: "Announcements", icon: Megaphone },
-  { id: "courses", label: "My Courses", icon: BookOpen },
+  { id: "profile", label: "My Profile", icon: User },
+  { id: "leave", label: "Apply for Leave", icon: CalendarOff },
 ];
 
 const currentStudent = STUDENTS[0];
@@ -32,6 +32,20 @@ const currentStudent = STUDENTS[0];
 const StudentPortal = () => {
   const [activeNav, setActiveNav] = useState("dashboard");
   const student = currentStudent;
+
+  // Custom notification slot with profile icon
+  const notificationSlot = (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={() => setActiveNav("profile")}
+        className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+        title="My Profile"
+      >
+        <User className="h-5 w-5 text-primary" />
+      </button>
+      <NotificationBell student={student} onNavigate={setActiveNav} />
+    </div>
+  );
 
   const renderContent = () => {
     switch (activeNav) {
@@ -49,7 +63,7 @@ const StudentPortal = () => {
         return <StudentTimetable />;
       case "leave":
         return <StudentLeave />;
-        case "courses":
+      case "courses":
         return <StudentCourses />;
       case "announcements":
         return (
@@ -84,7 +98,7 @@ const StudentPortal = () => {
       navItems={navItems}
       activeNav={activeNav}
       onNavChange={setActiveNav}
-      notificationSlot={<NotificationBell student={student} onNavigate={setActiveNav} />}
+      notificationSlot={notificationSlot}
     >
       {renderContent()}
     </PortalLayout>
