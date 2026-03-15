@@ -44,6 +44,29 @@ export interface Student {
   fees: { total: number; paid: number; pending: number; status: string };
 }
 
+// In mockData.ts
+export interface StudyMaterial {
+  id: number;
+  title: string;
+  type: "pdf" | "doc" | "ppt" | "link" | "video" | "note";
+  url?: string;
+  content?: string;
+}
+
+export interface CourseTopic {
+  id: number;
+  topicName: string;
+  materials: StudyMaterial[];
+}
+
+export interface CourseChapter {
+  id: number;
+  chapterNumber: number;
+  chapterName: string;
+  topics: CourseTopic[];
+  materials: StudyMaterial[];
+}
+
 export interface Course {
   id: number;
   name: string;
@@ -55,6 +78,9 @@ export interface Course {
   room: string;
   credits: number;
   progress: number;
+  chapters?: CourseChapter[];
+  materials?: StudyMaterial[];
+  assignments?: Assignment[];
 
   pastPapers: {
     title: string;
@@ -80,7 +106,7 @@ export interface TimetableEntry {
   wed?: string;
   thu?: string;
   fri?: string;
-  sat?: string;   // ✅ Added Saturday
+  sat?: string;  
 }
 
 export const STUDENTS: Student[] = [
@@ -529,6 +555,7 @@ export interface TeacherAssignment {
   chapterNumber?: number;
   submissionType?: "Handwritten" | "Word" | "PDF";
   instructions?: string;
+  assignedStudentIds?: number[];
   submissions: {
     studentId: number;
     studentName: string;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BookOpen, ArrowLeft, FileText, User } from "lucide-react";
-import { COURSES, TEACHERS } from "@/data/mockData";
+import { COURSES, TEACHERS, type StudyMaterial } from "@/data/mockData";
+import { materialIcon } from "@/components/teacher/classes/classUtils";
 
 const StudentCourses = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
@@ -44,6 +45,160 @@ const StudentCourses = () => {
             <p className="text-sm text-muted-foreground">
               {selectedCourse.description}
             </p>
+          </div>
+
+          {/* Course Content */}
+          <div className="border-t border-border pt-6">
+            <h3 className="font-semibold mb-4">Course Content</h3>
+
+            <div className="mb-4">
+              <p className="text-sm font-medium text-foreground mb-2">Course Materials</p>
+              {selectedCourse.materials && selectedCourse.materials.length > 0 ? (
+                <div className="space-y-2">
+                  {selectedCourse.materials.map((mat) => {
+                    const Icon = materialIcon(mat.type as StudyMaterial["type"]);
+                    return (
+                      <div
+                        key={mat.id}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="h-4 w-4 text-primary" />
+                          <div>
+                            <p className="text-sm text-foreground">{mat.title}</p>
+                            {mat.content && (
+                              <p className="text-xs text-muted-foreground">{mat.content}</p>
+                            )}
+                          </div>
+                        </div>
+                        {mat.url && (
+                          <a
+                            href={mat.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline text-sm"
+                          >
+                            View
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No course materials added yet.</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">Chapters & Topics</p>
+              {selectedCourse.chapters && selectedCourse.chapters.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedCourse.chapters.map((ch) => (
+                    <div key={ch.id} className="border border-border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            Chapter {ch.chapterNumber}: {ch.chapterName}
+                          </p>
+                          {ch.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{ch.description}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {ch.topics?.length || 0} Topics
+                        </span>
+                      </div>
+
+                      {ch.materials && ch.materials.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-foreground mb-2">
+                            Chapter Materials
+                          </p>
+                          <div className="space-y-2">
+                            {ch.materials.map((mat) => {
+                              const Icon = materialIcon(mat.type as StudyMaterial["type"]);
+                              return (
+                                <div
+                                  key={mat.id}
+                                  className="flex items-center justify-between text-sm"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Icon className="h-4 w-4 text-primary" />
+                                    <span>{mat.title}</span>
+                                  </div>
+                                  {mat.url && (
+                                    <a
+                                      href={mat.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary text-xs hover:underline"
+                                    >
+                                      View
+                                    </a>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {ch.topics && ch.topics.length > 0 ? (
+                        <div className="mt-3 space-y-3">
+                          {ch.topics.map((topic) => (
+                            <div
+                              key={topic.id}
+                              className="border border-border rounded-md p-3 bg-muted/10"
+                            >
+                              <p className="text-sm font-medium text-foreground">
+                                {topic.topicName}
+                              </p>
+                              {topic.materials && topic.materials.length > 0 ? (
+                                <div className="mt-2 space-y-2">
+                                  {topic.materials.map((mat) => {
+                                    const Icon = materialIcon(mat.type as StudyMaterial["type"]);
+                                    return (
+                                      <div
+                                        key={mat.id}
+                                        className="flex items-center justify-between text-sm"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <Icon className="h-4 w-4 text-primary" />
+                                          <span>{mat.title}</span>
+                                        </div>
+                                        {mat.url && (
+                                          <a
+                                            href={mat.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary text-xs hover:underline"
+                                          >
+                                            View
+                                          </a>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  No materials in this topic.
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-3">No topics added yet.</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No chapters added yet.</p>
+              )}
+            </div>
           </div>
 
           {/* Teacher Info */}

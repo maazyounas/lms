@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Student } from "@/data/mockData";
-import type { AdminTeacherRecord } from "@/components/admin/teacher/AdminTeacher";
+import type { AdminTeacherRecord } from "@/components/admin/teacher/types";
 import type { FeeTransaction } from "@/components/admin/types";
 
 interface Props {

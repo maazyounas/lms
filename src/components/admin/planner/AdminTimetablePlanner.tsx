@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Student } from "@/data/mockData";
-import type { AdminTeacherRecord } from "@/components/admin/teacher/AdminTeacher";
+import type { AdminTeacherRecord } from "@/components/admin/teacher/types";
 import type { PlannerAllocation } from "@/components/admin/types";
 
 interface Props {

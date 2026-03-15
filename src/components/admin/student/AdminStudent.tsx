@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
-import { Search, UserPlus, KeyRound } from "lucide-react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { TIMETABLE, type Student } from "@/data/mockData";
 import type { AuditLogEntry } from "@/components/admin/types";
 import { toast } from "sonner";
+import type { EnrollStudentForm } from "./types";
+import { DEFAULT_CLASSES, DEFAULT_SUBJECTS, getInitials, studentCode } from "./utils";
+import EnrollStudentSection from "./enroll/EnrollStudentSection";
+import SearchStudentSection from "./search/SearchStudentSection";
+import ResetStudentSection from "./reset/ResetStudentSection";
 
 interface Props {
   students: Student[];
@@ -14,27 +18,6 @@ interface Props {
 
 type Section = "enroll" | "search" | "reset";
 
-const DEFAULT_CLASSES = ["9-A", "9-B", "10-A", "10-B", "11-A"];
-const DEFAULT_SUBJECTS = [
-  "Mathematics",
-  "English",
-  "Physics",
-  "Chemistry",
-  "Urdu",
-  "Computer Science",
-  "Biology",
-];
-
-const getInitials = (name: string) =>
-  name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "ST";
-
-const studentCode = (id: number) => `STU-${String(id).padStart(4, "0")}`;
-
 const AdminStudent = ({
   students,
   onStudentsChange,
@@ -44,14 +27,14 @@ const AdminStudent = ({
 }: Props) => {
   const [activeSection, setActiveSection] = useState<Section>("enroll");
 
-  const [enrollForm, setEnrollForm] = useState({
+  const [enrollForm, setEnrollForm] = useState<EnrollStudentForm>({
     name: "",
     id: "",
     gender: "",
     guardian: "",
     guardianPhone: "",
     className: "",
-    subjects: [] as string[],
+    subjects: [],
   });
 
   const [query, setQuery] = useState("");
@@ -96,13 +79,13 @@ const AdminStudent = ({
       (s) =>
         s.name.toLowerCase().includes(q) ||
         String(s.id).includes(q) ||
-        studentCode(s.id).toLowerCase().includes(q)
+        studentCode(s.id).toLowerCase().includes(q),
     );
   }, [query, students]);
 
   const selectedStudent = useMemo(
     () => students.find((s) => s.id === selectedStudentId) || null,
-    [selectedStudentId, students]
+    [selectedStudentId, students],
   );
 
   useEffect(() => {
@@ -262,6 +245,20 @@ const AdminStudent = ({
     toast.success("Student information updated");
   };
 
+  const deleteStudent = (student: Student) => {
+    if (!window.confirm(`Are you sure you want to delete ${student.name}?`)) return;
+    const next = students.filter((s) => s.id !== student.id);
+    onStudentsChange(next);
+    onAuditLog?.({
+      actor: currentAdmin,
+      module: "Student",
+      action: "Deleted Student",
+      details: `${student.name} (${studentCode(student.id)}) removed.`,
+    });
+    if (selectedStudentId === student.id) setSelectedStudentId(null);
+    toast.success("Student deleted.");
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Student Administration</h1>
@@ -316,352 +313,40 @@ const AdminStudent = ({
       </div>
 
       {activeSection === "enroll" && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Enroll Student</h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              value={enrollForm.name}
-              onChange={(e) => setEnrollForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Student Name"
-              className="rounded-lg border border-border bg-background px-3 py-2"
-            />
-            <div className="space-y-1">
-              <input
-                value={enrollForm.id}
-                onChange={(e) => setEnrollForm((prev) => ({ ...prev, id: e.target.value }))}
-                placeholder="Unique Student ID"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2"
-              />
-              <p className="text-xs text-muted-foreground">
-                {lastEnrolledId
-                  ? `Recently enrolled ID: ${studentCode(lastEnrolledId)}`
-                  : "Pick a new ID that has not been used before."}
-              </p>
-            </div>
-
-            <select
-              value={enrollForm.gender}
-              onChange={(e) =>
-                setEnrollForm((prev) => ({ ...prev, gender: e.target.value }))
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2"
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-
-            <input
-              value={enrollForm.guardian}
-              onChange={(e) => setEnrollForm((prev) => ({ ...prev, guardian: e.target.value }))}
-              placeholder="Guardian Name"
-              className="rounded-lg border border-border bg-background px-3 py-2"
-            />
-
-            <input
-              value={enrollForm.guardianPhone}
-              onChange={(e) =>
-                setEnrollForm((prev) => ({ ...prev, guardianPhone: e.target.value }))
-              }
-              placeholder="Guardian Phone"
-              className="rounded-lg border border-border bg-background px-3 py-2"
-            />
-
-            <select
-              value={enrollForm.className}
-              onChange={(e) =>
-                setEnrollForm((prev) => ({
-                  ...prev,
-                  className: e.target.value,
-                  subjects: [],
-                }))
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2"
-            >
-              <option value="">Select Class</option>
-              {classes.map((className) => (
-                <option key={className} value={className}>
-                  {className}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-foreground mb-2">Select Subjects</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {activeSubjectOptions.map((subject) => (
-                <label
-                  key={subject}
-                  className="flex items-center gap-2 rounded-lg border border-border p-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={enrollForm.subjects.includes(subject)}
-                    onChange={() => toggleEnrollSubject(subject)}
-                  />
-                  {subject}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={enrollStudent}
-            className="rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-          >
-            Enroll Student
-          </button>
-        </div>
+        <EnrollStudentSection
+          enrollForm={enrollForm}
+          onChange={(next) => setEnrollForm(next)}
+          onEnroll={enrollStudent}
+          classes={classes}
+          activeSubjectOptions={activeSubjectOptions}
+          onToggleSubject={toggleEnrollSubject}
+          lastEnrolledId={lastEnrolledId}
+        />
       )}
 
       {activeSection === "search" && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-1 rounded-xl border border-border bg-card p-4 space-y-3">
-            <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name or ID"
-                className="w-full bg-transparent text-sm outline-none"
-              />
-            </div>
-
-            <div className="max-h-[500px] overflow-auto space-y-2">
-              {filteredStudents.map((student) => (
-                <button
-                  key={student.id}
-                  onClick={() => setSelectedStudentId(student.id)}
-                  className={`w-full rounded-lg border p-3 text-left ${
-                    selectedStudentId === student.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/30"
-                  }`}
-                >
-                  <p className="font-medium text-foreground">{student.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {studentCode(student.id)} | {student.grade}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="xl:col-span-2 rounded-xl border border-border bg-card p-4">
-            {!editableStudent ? (
-              <p className="text-sm text-muted-foreground">Select a student to view full details.</p>
-            ) : (
-              <div className="space-y-5">
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">{editableStudent.name}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {studentCode(editableStudent.id)} | {editableStudent.grade} | {editableStudent.email}
-                  </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-3">
-                  <input
-                    value={editableStudent.name}
-                    onChange={(e) =>
-                      setEditableStudent({ ...editableStudent, name: e.target.value })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2"
-                    placeholder="Name"
-                  />
-                  <input
-                    value={editableStudent.email}
-                    onChange={(e) =>
-                      setEditableStudent({ ...editableStudent, email: e.target.value })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2"
-                    placeholder="Email"
-                  />
-                  <input
-                    value={editableStudent.grade}
-                    onChange={(e) =>
-                      setEditableStudent({ ...editableStudent, grade: e.target.value })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2"
-                    placeholder="Class"
-                  />
-                  <input
-                    value={editableStudent.phone}
-                    onChange={(e) =>
-                      setEditableStudent({ ...editableStudent, phone: e.target.value })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2"
-                    placeholder="Phone"
-                  />
-                  <input
-                    value={editableStudent.guardian}
-                    onChange={(e) =>
-                      setEditableStudent({ ...editableStudent, guardian: e.target.value })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2"
-                    placeholder="Guardian"
-                  />
-                  <input
-                    value={editableStudent.guardianPhone}
-                    onChange={(e) =>
-                      setEditableStudent({ ...editableStudent, guardianPhone: e.target.value })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2"
-                    placeholder="Guardian Phone"
-                  />
-                  <input
-                    value={editableStudent.address}
-                    onChange={(e) =>
-                      setEditableStudent({ ...editableStudent, address: e.target.value })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2 md:col-span-2"
-                    placeholder="Address"
-                  />
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-2">Subjects</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {subjectOptions.map((subject) => (
-                      <label
-                        key={subject}
-                        className="flex items-center gap-2 rounded-lg border border-border p-2 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={editableStudent.tests.some((t) => t.subject === subject)}
-                          onChange={() => toggleEditableSubject(subject)}
-                        />
-                        {subject}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground">Attendance</p>
-                    <p className="font-semibold">
-                      {editableStudent.attendance.total > 0
-                        ? `${Math.round(
-                            (editableStudent.attendance.present /
-                              editableStudent.attendance.total) *
-                              100
-                          )}%`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground">Current GPA</p>
-                    <p className="font-semibold">
-                      {editableStudent.progress.at(-1)?.gpa?.toFixed(2) || "N/A"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground">Fee Status</p>
-                    <p className="font-semibold">{editableStudent.fees.status}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="p-3 border-b border-border text-sm font-medium">Grades</div>
-                  <div className="max-h-48 overflow-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border text-xs text-muted-foreground">
-                          <th className="px-3 py-2 text-left">Subject</th>
-                          <th className="px-3 py-2 text-left">Test</th>
-                          <th className="px-3 py-2 text-left">Marks</th>
-                          <th className="px-3 py-2 text-left">Grade</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {editableStudent.tests.map((test, idx) => (
-                          <tr key={`${test.subject}-${idx}`} className="border-b border-border last:border-0">
-                            <td className="px-3 py-2 text-sm">{test.subject}</td>
-                            <td className="px-3 py-2 text-sm">{test.test}</td>
-                            <td className="px-3 py-2 text-sm">{test.marks}/{test.total}</td>
-                            <td className="px-3 py-2 text-sm">{test.grade}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="p-3 border-b border-border text-sm font-medium">Class Timetable</div>
-                  <div className="max-h-56 overflow-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border text-xs text-muted-foreground">
-                          <th className="px-2 py-2 text-left">Time</th>
-                          <th className="px-2 py-2 text-left">Mon</th>
-                          <th className="px-2 py-2 text-left">Tue</th>
-                          <th className="px-2 py-2 text-left">Wed</th>
-                          <th className="px-2 py-2 text-left">Thu</th>
-                          <th className="px-2 py-2 text-left">Fri</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {TIMETABLE.map((slot) => (
-                          <tr key={slot.time} className="border-b border-border last:border-0">
-                            <td className="px-2 py-2">{slot.time}</td>
-                            <td className="px-2 py-2">{slot.mon || "-"}</td>
-                            <td className="px-2 py-2">{slot.tue || "-"}</td>
-                            <td className="px-2 py-2">{slot.wed || "-"}</td>
-                            <td className="px-2 py-2">{slot.thu || "-"}</td>
-                            <td className="px-2 py-2">{slot.fri || "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <button
-                  onClick={saveStudentUpdates}
-                  className="rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-                >
-                  Update Student Information
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <SearchStudentSection
+          query={query}
+          onQueryChange={setQuery}
+          filteredStudents={filteredStudents}
+          selectedStudentId={selectedStudentId}
+          onSelectStudentId={setSelectedStudentId}
+          editableStudent={editableStudent}
+          onEditableStudentChange={(next) => setEditableStudent(next)}
+          onToggleSubject={toggleEditableSubject}
+          subjectOptions={subjectOptions}
+          onSave={saveStudentUpdates}
+          onDelete={deleteStudent}
+          timetable={TIMETABLE}
+        />
       )}
 
       {activeSection === "reset" && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-warning" />
-            <h2 className="text-lg font-semibold">Reset Password</h2>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              value={resetId}
-              onChange={(e) => setResetId(e.target.value)}
-              placeholder="Enter Student ID"
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2"
-            />
-            <button
-              onClick={resetPassword}
-              className="rounded-lg bg-warning px-4 py-2 text-white"
-            >
-              Reset Password
-            </button>
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            Default password after reset is the student ID.
-          </p>
-        </div>
+        <ResetStudentSection
+          resetId={resetId}
+          onResetIdChange={setResetId}
+          onReset={resetPassword}
+        />
       )}
     </div>
   );

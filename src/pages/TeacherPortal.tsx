@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   LayoutDashboard, BookOpen, Users, ClipboardCheck,
   User, CalendarOff, ClipboardList, Megaphone
@@ -43,11 +43,18 @@ const TeacherPortal = () => {
       case "dashboard":
         return <TeacherDashboard teacher={teacher} onNavigate={setActiveNav} onSelectClass={setSelectedClass} />;
       case "classes":
-        return <TeacherClasses teacher={teacher} selectedClass={selectedClass} onSelectClass={setSelectedClass} />;
+        return (
+          <TeacherClasses
+            teacher={teacher}
+            selectedClass={selectedClass}
+            onSelectClass={setSelectedClass}
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        );
       case "profile":
         return <TeacherProfile teacher={teacher} />;
       case "leave":
-        return <TeacherLeave />;
+        return <TeacherLeave teacher={teacher} />;
       case "assignments":
         return <TeacherAssignments teacher={teacher} />;
       case "createQuiz":
@@ -93,3 +100,4 @@ const TeacherPortal = () => {
 };
 
 export default TeacherPortal;
+

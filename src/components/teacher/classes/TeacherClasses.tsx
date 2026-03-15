@@ -1,267 +1,442 @@
-import { useState } from "react";
-import { ArrowLeft, Users, BookOpen, TrendingUp, Clock, ChevronDown, ChevronUp, FileText, Download, Eye } from "lucide-react";
-import { STUDENTS, COURSES, TEACHER_ASSIGNMENTS, type Teacher, type Course, type Student, type StudentAssignment } from "@/data/mockData";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, BookOpen, Clock, TrendingUp, Users } from "lucide-react";
+import {
+  COURSES,
+  STUDENTS,
+  type Course,
+  type CourseChapter,
+  type CourseTopic,
+  type StudyMaterial,
+  type Teacher,
+} from "@/data/mockData";
+import { toast } from "sonner";
+import OverviewTab from "./overview/OverviewTab";
+import ChaptersTab from "./chapters/ChaptersTab";
+import MaterialsTab from "./materials/MaterialsTab";
+import StudentsSection from "./students/StudentsSection";
+import PreviewTab from "./preview/PreviewTab";
 
 interface Props {
   teacher: Teacher;
   selectedClass: Course | null;
   onSelectClass: (course: Course | null) => void;
+  onNavigate: (nav: string, options?: { assignmentId?: number; testId?: number }) => void;
 }
-
-const gradeColor = (g: string) => {
-  if (g.startsWith("A")) return "text-success";
-  if (g.startsWith("B")) return "text-info";
-  if (g.startsWith("C")) return "text-warning";
-  return "text-destructive";
-};
 
 const TeacherClasses = ({ teacher, selectedClass, onSelectClass }: Props) => {
   const myCourses = COURSES.filter((c) => c.teacher === teacher.name);
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "chapters" | "materials" | "preview" | "students"
+  >("overview");
+  const [expandedChapters, setExpandedChapters] = useState<Set<number>>(new Set());
+  const [expandedTopics, setExpandedTopics] = useState<Set<number>>(new Set());
+  const [classData, setClassData] = useState<Course | null>(null);
+
+  useEffect(() => {
+    if (!selectedClass) {
+      setClassData(null);
+      return;
+    }
+    const normalized: Course = {
+      ...selectedClass,
+      description: selectedClass.description || "",
+      materials: selectedClass.materials ? [...selectedClass.materials] : [],
+      chapters: selectedClass.chapters
+        ? selectedClass.chapters.map((ch) => ({
+            ...ch,
+            materials: ch.materials ? [...ch.materials] : [],
+            topics: ch.topics
+              ? ch.topics.map((t) => ({
+                  ...t,
+                  materials: t.materials ? [...t.materials] : [],
+                }))
+              : [],
+          }))
+        : [],
+    };
+    setClassData(normalized);
+    setExpandedChapters(new Set());
+    setExpandedTopics(new Set());
+    setExpandedStudentId(null);
+  }, [selectedClass]);
+
+  const nextChapterId = useMemo(() => {
+    if (!classData?.chapters?.length) return 1;
+    return Math.max(...classData.chapters.map((c) => c.id)) + 1;
+  }, [classData?.chapters]);
+
+  const nextTopicId = useMemo(() => {
+    if (!classData?.chapters?.length) return 1;
+    const all = classData.chapters.flatMap((c) => c.topics || []);
+    return all.length ? Math.max(...all.map((t) => t.id)) + 1 : 1;
+  }, [classData?.chapters]);
+
+  const nextMaterialId = useMemo(() => {
+    if (!classData) return 1;
+    const ids: number[] = [];
+    classData.materials?.forEach((m) => ids.push(m.id));
+    classData.chapters?.forEach((ch) => {
+      ch.materials?.forEach((m) => ids.push(m.id));
+      ch.topics?.forEach((t) => t.materials?.forEach((m) => ids.push(m.id)));
+    });
+    return ids.length ? Math.max(...ids) + 1 : 1;
+  }, [classData]);
 
   if (selectedClass) {
-    // Get students in this class grade (for demo, we use all students)
-    const classStudents = STUDENTS; // all students for demo
-    const avgScore = classStudents.length > 0
-      ? (classStudents.reduce((a, s) => {
-          const t = s.tests.find((t) => t.subject === teacher.subject && t.test === "Mid-Term");
-          return a + (t ? (t.marks / t.total) * 100 : 0);
-        }, 0) / classStudents.length).toFixed(0)
-      : "0";
+    if (!classData) return null;
+    const classStudents = STUDENTS;
+    const avgScore =
+      classStudents.length > 0
+        ? (
+            classStudents.reduce((a, s) => {
+              const t = s.tests.find(
+                (test) => test.subject === teacher.subject && test.test === "Mid-Term",
+              );
+              return a + (t ? (t.marks / t.total) * 100 : 0);
+            }, 0) / classStudents.length
+          ).toFixed(0)
+        : "0";
 
     const toggleStudent = (studentId: number) => {
       setExpandedStudentId(expandedStudentId === studentId ? null : studentId);
     };
 
+    const toggleChapter = (chapterId: number) => {
+      const newSet = new Set(expandedChapters);
+      if (newSet.has(chapterId)) newSet.delete(chapterId);
+      else newSet.add(chapterId);
+      setExpandedChapters(newSet);
+    };
+
+    const toggleTopic = (topicId: number) => {
+      const newSet = new Set(expandedTopics);
+      if (newSet.has(topicId)) newSet.delete(topicId);
+      else newSet.add(topicId);
+      setExpandedTopics(newSet);
+    };
+
+    const handleUpdateDescription = (value: string) => {
+      setClassData((prev) => (prev ? { ...prev, description: value } : prev));
+    };
+
+    const handleAddCourseMaterial = (material: Omit<StudyMaterial, "id">) => {
+      setClassData((prev) =>
+        prev
+          ? {
+              ...prev,
+              materials: [...(prev.materials || []), { ...material, id: nextMaterialId }],
+            }
+          : prev,
+      );
+      toast.success("Material added to course.");
+    };
+
+    const handleAddChapter = (data: {
+      chapterNumber: number;
+      chapterName: string;
+      description?: string;
+    }) => {
+      setClassData((prev) => {
+        if (!prev) return prev;
+        const newChapter: CourseChapter & { description?: string } = {
+          id: nextChapterId,
+          chapterNumber: data.chapterNumber,
+          chapterName: data.chapterName,
+          description: data.description,
+          materials: [],
+          topics: [],
+        };
+        return { ...prev, chapters: [...(prev.chapters || []), newChapter] };
+      });
+      toast.success("Chapter added.");
+    };
+
+    const handleUpdateChapter = (
+      chapterId: number,
+      patch: { chapterNumber?: number; chapterName?: string; description?: string },
+    ) => {
+      setClassData((prev) => {
+        if (!prev?.chapters) return prev;
+        return {
+          ...prev,
+          chapters: prev.chapters.map((ch) => (ch.id === chapterId ? { ...ch, ...patch } : ch)),
+        };
+      });
+    };
+
+    const handleAddChapterMaterial = (chapterId: number, material: Omit<StudyMaterial, "id">) => {
+      setClassData((prev) => {
+        if (!prev?.chapters) return prev;
+        return {
+          ...prev,
+          chapters: prev.chapters.map((ch) =>
+            ch.id === chapterId
+              ? { ...ch, materials: [...(ch.materials || []), { ...material, id: nextMaterialId }] }
+              : ch,
+          ),
+        };
+      });
+      toast.success("Material added to chapter.");
+    };
+
+    const handleAddTopic = (chapterId: number, topicName: string) => {
+      setClassData((prev) => {
+        if (!prev?.chapters) return prev;
+        const newTopic: CourseTopic = {
+          id: nextTopicId,
+          topicName,
+          materials: [],
+        };
+        return {
+          ...prev,
+          chapters: prev.chapters.map((ch) =>
+            ch.id === chapterId ? { ...ch, topics: [...(ch.topics || []), newTopic] } : ch,
+          ),
+        };
+      });
+      toast.success("Topic added.");
+    };
+
+    const handleUpdateTopic = (chapterId: number, topicId: number, topicName: string) => {
+      setClassData((prev) => {
+        if (!prev?.chapters) return prev;
+        return {
+          ...prev,
+          chapters: prev.chapters.map((ch) =>
+            ch.id === chapterId
+              ? {
+                  ...ch,
+                  topics: (ch.topics || []).map((t) =>
+                    t.id === topicId ? { ...t, topicName } : t,
+                  ),
+                }
+              : ch,
+          ),
+        };
+      });
+    };
+
+    const handleAddTopicMaterial = (
+      chapterId: number,
+      topicId: number,
+      material: Omit<StudyMaterial, "id">,
+    ) => {
+      setClassData((prev) => {
+        if (!prev?.chapters) return prev;
+        return {
+          ...prev,
+          chapters: prev.chapters.map((ch) =>
+            ch.id === chapterId
+              ? {
+                  ...ch,
+                  topics: (ch.topics || []).map((t) =>
+                    t.id === topicId
+                      ? {
+                          ...t,
+                          materials: [...(t.materials || []), { ...material, id: nextMaterialId }],
+                        }
+                      : t,
+                  ),
+                }
+              : ch,
+          ),
+        };
+      });
+      toast.success("Material added to topic.");
+    };
+
     return (
-      <div>
-        <button onClick={() => onSelectClass(null)} className="flex items-center gap-2 text-primary text-sm hover:underline mb-4">
-          <ArrowLeft className="h-4 w-4" /> Back to Classes
+      <div className="space-y-6">
+        {/* Back Button */}
+        <button
+          onClick={() => onSelectClass(null)}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Back to Classes
         </button>
 
-        {/* Class Header */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-6">
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{selectedClass.name}</h1>
-              <p className="text-sm text-muted-foreground mt-1">{selectedClass.code} · {selectedClass.room}</p>
+        {/* Class Header Card */}
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-6 md:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            {/* Title & Description */}
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                {classData.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                <span>{classData.code}</span>
+                <span className="hidden sm:inline">•</span>
+                <span>{classData.room}</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {classData.schedule}
+                </span>
+              </div>
+              {classData.description && (
+                <p className="text-sm text-muted-foreground max-w-2xl mt-3 leading-relaxed">
+                  {classData.description}
+                </p>
+              )}
             </div>
-            <div className="flex gap-4">
+
+            {/* Stats Cards */}
+            <div className="flex flex-wrap gap-4">
               {[
                 { label: "Students", value: classStudents.length, icon: Users },
                 { label: "Avg Score", value: `${avgScore}%`, icon: TrendingUp },
-                { label: "Progress", value: `${selectedClass.progress}%`, icon: BookOpen },
-              ].map((s) => (
-                <div key={s.label} className="text-center">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mx-auto mb-1">
-                    <s.icon className="h-5 w-5" />
+                { label: "Progress", value: `${classData.progress}%`, icon: BookOpen },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex items-center gap-3 bg-muted/30 rounded-xl px-4 py-3 min-w-[120px]"
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <stat.icon className="h-5 w-5" />
                   </div>
-                  <p className="text-lg font-bold text-foreground">{s.value}</p>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <div>
+                    <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" /> {selectedClass.schedule}
-          </div>
-          <div className="mt-3">
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-muted-foreground">Syllabus Completion</span>
-              <span className="text-foreground font-medium">{selectedClass.progress}%</span>
+
+          {/* Syllabus Progress Bar */}
+          <div className="mt-6">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Syllabus completion</span>
+              <span className="font-medium text-foreground">{classData.progress}%</span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full" style={{ width: `${selectedClass.progress}%` }} />
+            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${classData.progress}%` }}
+              />
             </div>
           </div>
         </div>
 
-        {/* Student List */}
-        <div className="space-y-3">
-          {classStudents.map((s) => {
-            const subTests = s.tests.filter((t) => t.subject === teacher.subject);
-            const midTerm = subTests.find((t) => t.test === "Mid-Term");
-            const quiz = subTests.find((t) => t.test !== "Mid-Term" && t.test !== "Lab Practical");
-            const avg = subTests.length > 0 ? subTests.reduce((a, t) => a + (t.marks / t.total) * 100, 0) / subTests.length : 0;
+        {/* Tabs */}
+        <div className="border-b border-border">
+          <div className="flex flex-wrap gap-1">
+            {(["overview", "chapters", "materials", "preview", "students"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-5 py-2.5 text-sm font-medium rounded-t-lg transition-all ${
+                  activeTab === tab
+                    ? "bg-primary/10 text-primary border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
 
-            // Filter assignments for this teacher's subject
-            const subjectAssignments = s.assignments.filter(a => a.subject === teacher.subject);
-
-            // Also include submissions from TEACHER_ASSIGNMENTS if needed (but they might duplicate)
-            // We'll just use student's own assignments array as it's comprehensive.
-
-            const isExpanded = expandedStudentId === s.id;
-
-            return (
-              <div key={s.id} className="bg-card border border-border rounded-xl overflow-hidden">
-                {/* Student Row (clickable) */}
-                <div
-                  onClick={() => toggleStudent(s.id)}
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                      {s.avatar}
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">{s.name}</p>
-                      <p className="text-xs text-muted-foreground">ID: STU-{String(s.id).padStart(4, "0")} · Grade: {s.grade}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <span className={`text-sm font-bold ${avg >= 80 ? "text-success" : avg >= 60 ? "text-warning" : "text-destructive"}`}>
-                        {avg.toFixed(0)}% Avg
-                      </span>
-                    </div>
-                    {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
-                  </div>
-                </div>
-
-                {/* Expanded Details */}
-                {isExpanded && (
-                  <div className="border-t border-border p-4 bg-muted/10">
-                    <h4 className="font-semibold text-foreground mb-3">📝 Tests & Quizzes</h4>
-                    {subTests.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No tests recorded.</p>
-                    ) : (
-                      <div className="overflow-x-auto mb-4">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/30">
-                            <tr>
-                              <th className="text-left p-2">Test</th>
-                              <th className="text-left p-2">Marks</th>
-                              <th className="text-left p-2">Total</th>
-                              <th className="text-left p-2">%</th>
-                              <th className="text-left p-2">Grade</th>
-                              <th className="text-left p-2">Date</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {subTests.map((test, idx) => (
-                              <tr key={idx} className="border-b border-border">
-                                <td className="p-2 font-medium">{test.test}</td>
-                                <td className="p-2">{test.marks}</td>
-                                <td className="p-2">{test.total}</td>
-                                <td className="p-2">{((test.marks / test.total) * 100).toFixed(0)}%</td>
-                                <td className={`p-2 font-bold ${gradeColor(test.grade)}`}>{test.grade}</td>
-                                <td className="p-2">{new Date(test.date).toLocaleDateString()}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    <h4 className="font-semibold text-foreground mb-3">📂 Assignments</h4>
-                    {subjectAssignments.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No assignments for this subject.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {subjectAssignments.map((ass, idx) => (
-                          <div key={idx} className="bg-card border border-border rounded-lg p-3">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="font-medium text-foreground">{ass.title}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Due: {new Date(ass.due).toLocaleDateString()} · Status: 
-                                  <span className={`ml-1 ${ass.status === "Submitted" ? "text-success" : ass.status === "Late" ? "text-destructive" : "text-warning"}`}>
-                                    {ass.status}
-                                  </span>
-                                </p>
-                                {ass.question && <p className="text-sm mt-1">{ass.question}</p>}
-                                {ass.totalMarks && <p className="text-xs text-muted-foreground mt-1">Total Marks: {ass.totalMarks}</p>}
-                                {ass.score && <p className="text-sm font-semibold mt-1">Score: {ass.score}</p>}
-                              </div>
-                              {/* If there's a file associated, show view button */}
-                              {/* In mock data, assignments don't have file links, but we can simulate */}
-                              {ass.status === "Submitted" && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // In a real app, this would open the PDF
-                                    alert(`Viewing submission for ${ass.title} (simulated PDF)`);
-                                  }}
-                                  className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
-                                  title="View Submission"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </button>
-                              )}
-                            </div>
-                            {/* Additional metadata */}
-                            {(ass.chapterName || ass.submissionType) && (
-                              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                {ass.chapterName && <span>📘 {ass.chapterName}</span>}
-                                {ass.submissionType && <span>📎 {ass.submissionType}</span>}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Option to recheck/give feedback - could be a button */}
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Navigate to grading or open assignment review
-                          alert(`Recheck/grading for ${s.name} - feature coming soon`);
-                        }}
-                        className="text-sm text-primary hover:underline"
-                      >
-                        Grade / Recheck
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        {/* Tab Content Container */}
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+          {activeTab === "overview" && (
+            <OverviewTab
+              selectedClass={classData}
+              onUpdateDescription={handleUpdateDescription}
+              onAddMaterial={handleAddCourseMaterial}
+            />
+          )}
+          {activeTab === "chapters" && (
+            <ChaptersTab
+              selectedClass={classData}
+              expandedChapters={expandedChapters}
+              expandedTopics={expandedTopics}
+              onToggleChapter={toggleChapter}
+              onToggleTopic={toggleTopic}
+              onAddChapter={handleAddChapter}
+              onUpdateChapter={handleUpdateChapter}
+              onAddChapterMaterial={handleAddChapterMaterial}
+              onAddTopic={handleAddTopic}
+              onUpdateTopic={handleUpdateTopic}
+              onAddTopicMaterial={handleAddTopicMaterial}
+            />
+          )}
+          {activeTab === "materials" && <MaterialsTab selectedClass={classData} />}
+          {activeTab === "preview" && (
+            <PreviewTab selectedClass={classData} studentCount={classStudents.length} />
+          )}
+          {activeTab === "students" && (
+            <StudentsSection
+              classStudents={classStudents}
+              teacher={teacher}
+              expandedStudentId={expandedStudentId}
+              onToggleStudent={toggleStudent}
+            />
+          )}
         </div>
       </div>
     );
   }
 
-  // Classes list
+  // Class List View
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">My Classes</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight text-foreground">My Classes</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {myCourses.map((c) => {
           const classStudents = STUDENTS;
-          const avgScore = (classStudents.reduce((a, s) => {
-            const t = s.tests.find((t) => t.subject === teacher.subject && t.test === "Mid-Term");
-            return a + (t ? (t.marks / t.total) * 100 : 0);
-          }, 0) / classStudents.length).toFixed(0);
+          const avgScore = (
+            classStudents.reduce((a, s) => {
+              const t = s.tests.find(
+                (test) => test.subject === teacher.subject && test.test === "Mid-Term",
+              );
+              return a + (t ? (t.marks / t.total) * 100 : 0);
+            }, 0) / classStudents.length
+          ).toFixed(0);
 
           return (
             <button
               key={c.id}
               onClick={() => onSelectClass(c)}
-              className="text-left bg-card border border-border rounded-xl p-6 hover:border-primary/30 transition-colors"
+              className="group text-left bg-card border border-border rounded-2xl p-6 hover:border-primary/30 hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">{c.name}</h3>
+                  <h3 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+                    {c.name}
+                  </h3>
                   <p className="text-sm text-muted-foreground">{c.code}</p>
                 </div>
-                <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-md">{c.credits} credits</span>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>📍 {c.room}</p>
-                <p>🕐 {c.schedule}</p>
-                <p>👥 {classStudents.length} students</p>
-                <p>📊 Avg Score: {avgScore}%</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Room:</span> {c.room}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {c.schedule}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  {classStudents.length} Students
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Avg Score: {avgScore}%
+                </div>
               </div>
               <div className="mt-4">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Syllabus Progress</span>
-                  <span className="text-foreground font-medium">{c.progress}%</span>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-muted-foreground">Syllabus progress</span>
+                  <span className="font-medium text-foreground">{c.progress}%</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full" style={{ width: `${c.progress}%` }} />
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300 group-hover:bg-primary/80"
+                    style={{ width: `${c.progress}%` }}
+                  />
                 </div>
               </div>
             </button>

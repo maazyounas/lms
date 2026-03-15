@@ -1,12 +1,11 @@
-import { useMemo, useState } from "react";
-import { KeyRound, Search, UserPlus } from "lucide-react";
-import type { Teacher } from "@/data/mockData";
+﻿import { useMemo, useState } from "react";
 import type { AuditLogEntry } from "@/components/admin/types";
 import { toast } from "sonner";
-
-export type AdminTeacherRecord = Teacher & {
-  classSubjects?: Record<string, string[]>;
-};
+import type { AdminTeacherRecord } from "./types";
+import { DEFAULT_CLASSES, DEFAULT_SUBJECTS, GENDER_OPTIONS, getInitials, teacherCode } from "./utils";
+import EnrollTeacherSection from "./enroll/EnrollTeacherSection";
+import SearchTeacherSection from "./search/SearchTeacherSection";
+import ResetTeacherSection from "./reset/ResetTeacherSection";
 
 interface Props {
   teachers: AdminTeacherRecord[];
@@ -17,26 +16,28 @@ interface Props {
 
 type Section = "enroll" | "search" | "reset";
 
-const DEFAULT_CLASSES = ["9-A", "9-B", "10-A", "10-B", "11-A"];
-const DEFAULT_SUBJECTS = [
-  "Mathematics",
-  "English",
-  "Physics",
-  "Chemistry",
-  "Urdu",
-  "Computer Science",
-  "Biology",
-];
+type EnrollForm = {
+  name: string;
+  id: string;
+  gender: string;
+  qualification: string;
+  classes: string[];
+  classSubjects: Record<string, string[]>;
+};
 
-const teacherCode = (id: number) => `TCH-${String(id).padStart(4, "0")}`;
+type EditForm = {
+  name: string;
+  id: number;
+  gender: string;
+  qualification: string;
+  classes: string[];
+  classSubjects: Record<string, string[]>;
+};
 
-const getInitials = (name: string) =>
-  name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "TR";
+type FormWithClasses = {
+  classes: string[];
+  classSubjects: Record<string, string[]>;
+};
 
 const AdminTeacher = ({
   teachers,
@@ -49,12 +50,17 @@ const AdminTeacher = ({
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
   const [resetId, setResetId] = useState("");
 
-  const [enrollForm, setEnrollForm] = useState({
+  const [enrollForm, setEnrollForm] = useState<EnrollForm>({
     name: "",
     id: "",
-    classes: [] as string[],
-    classSubjects: {} as Record<string, string[]>,
+    gender: "Male",
+    qualification: "",
+    classes: [],
+    classSubjects: {},
   });
+
+  const [editingTeacherId, setEditingTeacherId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
 
   const classOptions = useMemo(() => {
     const dataClasses = teachers.flatMap((t) => t.classes);
@@ -66,7 +72,7 @@ const AdminTeacher = ({
       t.subject
         .split(",")
         .map((s) => s.trim())
-        .filter(Boolean)
+        .filter(Boolean),
     );
     return Array.from(new Set([...DEFAULT_SUBJECTS, ...dataSubjects])).sort();
   }, [teachers]);
@@ -90,39 +96,45 @@ const AdminTeacher = ({
 
   const selectedTeacher = useMemo(
     () => teachers.find((t) => t.id === selectedTeacherId) || null,
-    [selectedTeacherId, teachers]
+    [selectedTeacherId, teachers],
   );
 
-  const toggleClass = (className: string) => {
-    setEnrollForm((prev) => {
-      const exists = prev.classes.includes(className);
-      if (exists) {
-        const nextSubjects = { ...prev.classSubjects };
-        delete nextSubjects[className];
-        return {
-          ...prev,
-          classes: prev.classes.filter((x) => x !== className),
-          classSubjects: nextSubjects,
-        };
-      }
-      return {
-        ...prev,
-        classes: [...prev.classes, className],
-        classSubjects: { ...prev.classSubjects, [className]: [] },
-      };
-    });
+  const toggleClass = <T extends FormWithClasses>(
+    form: T,
+    setForm: (next: T) => void,
+    className: string,
+  ) => {
+    const exists = form.classes.includes(className);
+    if (exists) {
+      const nextSubjects = { ...form.classSubjects };
+      delete nextSubjects[className];
+      setForm({
+        ...form,
+        classes: form.classes.filter((x) => x !== className),
+        classSubjects: nextSubjects,
+      });
+    } else {
+      setForm({
+        ...form,
+        classes: [...form.classes, className],
+        classSubjects: { ...form.classSubjects, [className]: [] },
+      });
+    }
   };
 
-  const toggleSubjectForClass = (className: string, subject: string) => {
-    setEnrollForm((prev) => {
-      const current = prev.classSubjects[className] || [];
-      const next = current.includes(subject)
-        ? current.filter((x) => x !== subject)
-        : [...current, subject];
-      return {
-        ...prev,
-        classSubjects: { ...prev.classSubjects, [className]: next },
-      };
+  const toggleSubjectForClass = <T extends FormWithClasses>(
+    form: T,
+    setForm: (next: T) => void,
+    className: string,
+    subject: string,
+  ) => {
+    const current = form.classSubjects[className] || [];
+    const next = current.includes(subject)
+      ? current.filter((x) => x !== subject)
+      : [...current, subject];
+    setForm({
+      ...form,
+      classSubjects: { ...form.classSubjects, [className]: next },
     });
   };
 
@@ -130,6 +142,8 @@ const AdminTeacher = ({
     const name = enrollForm.name.trim();
     const numericId = Number(enrollForm.id.trim());
     const classes = enrollForm.classes;
+    const gender = enrollForm.gender;
+    const qualification = enrollForm.qualification.trim();
 
     if (!name || !Number.isInteger(numericId) || numericId <= 0 || classes.length === 0) {
       toast.error("Enter valid name, ID and at least one class");
@@ -142,7 +156,7 @@ const AdminTeacher = ({
     }
 
     const hasMissingSubjects = classes.some(
-      (className) => (enrollForm.classSubjects[className] || []).length === 0
+      (className) => (enrollForm.classSubjects[className] || []).length === 0,
     );
     if (hasMissingSubjects) {
       toast.error("Assign at least one subject for each selected class");
@@ -150,12 +164,14 @@ const AdminTeacher = ({
     }
 
     const allSubjects = Array.from(
-      new Set(classes.flatMap((className) => enrollForm.classSubjects[className] || []))
+      new Set(classes.flatMap((className) => enrollForm.classSubjects[className] || [])),
     );
 
     const newTeacher: AdminTeacherRecord = {
       id: numericId,
       name,
+      gender,
+      qualification,
       subject: allSubjects.join(", "),
       email: `${name.toLowerCase().replace(/\s+/g, ".")}@school.edu`,
       avatar: getInitials(name),
@@ -164,8 +180,6 @@ const AdminTeacher = ({
       phone: "",
       address: "",
       dob: "1985-01-01",
-      gender: "Not Set",
-      qualification: "",
       joinDate: new Date().toISOString().slice(0, 10),
       emergencyContact: "",
       emergencyPhone: "",
@@ -182,8 +196,113 @@ const AdminTeacher = ({
       action: "Enrolled Teacher",
       details: `${newTeacher.name} (${teacherCode(newTeacher.id)}) assigned ${newTeacher.classes.join(", ")}.`,
     });
-    setEnrollForm({ name: "", id: "", classes: [], classSubjects: {} });
+    setEnrollForm({
+      name: "",
+      id: "",
+      gender: "Male",
+      qualification: "",
+      classes: [],
+      classSubjects: {},
+    });
     toast.success(`Teacher enrolled. Default password: ${numericId}`);
+  };
+
+  const startEditing = (teacher: AdminTeacherRecord) => {
+    setEditingTeacherId(teacher.id);
+    let classSubjects = teacher.classSubjects ? { ...teacher.classSubjects } : {};
+    if (Object.keys(classSubjects).length === 0 && teacher.classes.length > 0) {
+      const subjects = teacher.subject.split(",").map((s) => s.trim()).filter(Boolean);
+      classSubjects = teacher.classes.reduce((acc, cls) => {
+        acc[cls] = subjects;
+        return acc;
+      }, {} as Record<string, string[]>);
+    }
+    setEditForm({
+      name: teacher.name,
+      id: teacher.id,
+      gender: teacher.gender || "Male",
+      qualification: teacher.qualification || "",
+      classes: [...teacher.classes],
+      classSubjects,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingTeacherId(null);
+    setEditForm(null);
+  };
+
+  const saveEdit = () => {
+    if (!editForm || !editingTeacherId) return;
+
+    const name = editForm.name.trim();
+    const classes = editForm.classes;
+    const gender = editForm.gender;
+    const qualification = editForm.qualification.trim();
+
+    if (!name || classes.length === 0) {
+      toast.error("Name and at least one class are required");
+      return;
+    }
+
+    if (editForm.id !== editingTeacherId && teachers.some((t) => t.id === editForm.id)) {
+      toast.error("Teacher ID already exists");
+      return;
+    }
+
+    const hasMissingSubjects = classes.some(
+      (className) => (editForm.classSubjects[className] || []).length === 0,
+    );
+    if (hasMissingSubjects) {
+      toast.error("Assign at least one subject for each selected class");
+      return;
+    }
+
+    const allSubjects = Array.from(
+      new Set(classes.flatMap((className) => editForm.classSubjects[className] || [])),
+    );
+
+    const updatedTeacher: AdminTeacherRecord = {
+      ...teachers.find((t) => t.id === editingTeacherId)!,
+      id: editForm.id,
+      name,
+      gender,
+      qualification,
+      subject: allSubjects.join(", "),
+      classes,
+      classSubjects: classes.reduce<Record<string, string[]>>((acc, className) => {
+        acc[className] = editForm.classSubjects[className] || [];
+        return acc;
+      }, {}),
+    };
+
+    const newTeachers = teachers.map((t) =>
+      t.id === editingTeacherId ? updatedTeacher : t,
+    );
+    onTeachersChange(newTeachers);
+    onAuditLog?.({
+      actor: currentAdmin,
+      module: "Teacher",
+      action: "Updated Teacher",
+      details: `${updatedTeacher.name} (${teacherCode(updatedTeacher.id)}) details updated.`,
+    });
+    setEditingTeacherId(null);
+    setEditForm(null);
+    toast.success("Teacher updated successfully.");
+  };
+
+  const deleteTeacher = (teacher: AdminTeacherRecord) => {
+    if (!window.confirm(`Are you sure you want to delete ${teacher.name}?`)) return;
+    const newTeachers = teachers.filter((t) => t.id !== teacher.id);
+    onTeachersChange(newTeachers);
+    onAuditLog?.({
+      actor: currentAdmin,
+      module: "Teacher",
+      action: "Deleted Teacher",
+      details: `${teacher.name} (${teacherCode(teacher.id)}) removed.`,
+    });
+    if (selectedTeacherId === teacher.id) setSelectedTeacherId(null);
+    toast.success("Teacher deleted.");
   };
 
   const resetPassword = () => {
@@ -208,6 +327,22 @@ const AdminTeacher = ({
     toast.success(`Password reset. Default password is ${target.id}`);
     setResetId("");
   };
+
+  const handleToggleEnrollClass = (className: string) =>
+    toggleClass(enrollForm, (next) => setEnrollForm(next), className);
+  const handleToggleEnrollSubject = (className: string, subject: string) =>
+    toggleSubjectForClass(enrollForm, (next) => setEnrollForm(next), className, subject);
+
+  const handleToggleEditClass = (className: string) => {
+    if (!editForm) return;
+    toggleClass(editForm, (next) => setEditForm(next), className);
+  };
+  const handleToggleEditSubject = (className: string, subject: string) => {
+    if (!editForm) return;
+    toggleSubjectForClass(editForm, (next) => setEditForm(next), className, subject);
+  };
+
+  const handleEditFormChange = (next: EditForm) => setEditForm(next);
 
   return (
     <div className="space-y-6">
@@ -260,214 +395,47 @@ const AdminTeacher = ({
       </div>
 
       {activeSection === "enroll" && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Enroll Teacher</h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              value={enrollForm.name}
-              onChange={(e) => setEnrollForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Teacher Name"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-            <input
-              value={enrollForm.id}
-              onChange={(e) => setEnrollForm((prev) => ({ ...prev, id: e.target.value }))}
-              placeholder="Teacher ID"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-foreground">Assign Classes</p>
-            <div className="flex flex-wrap gap-2">
-              {classOptions.map((className) => (
-                <label
-                  key={className}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={enrollForm.classes.includes(className)}
-                    onChange={() => toggleClass(className)}
-                  />
-                  {className}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {enrollForm.classes.map((className) => (
-            <div key={className} className="space-y-2 rounded-lg border border-border bg-background p-3">
-              <p className="text-sm font-medium text-foreground">
-                {className}: Assign Subjects
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {subjectOptions.map((subject) => (
-                  <label
-                    key={`${className}-${subject}`}
-                    className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={(enrollForm.classSubjects[className] || []).includes(subject)}
-                      onChange={() => toggleSubjectForClass(className, subject)}
-                    />
-                    {subject}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          <button
-            onClick={enrollTeacher}
-            className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
-          >
-            Enroll Teacher
-          </button>
-        </div>
+        <EnrollTeacherSection
+          enrollForm={enrollForm}
+          onChange={(next) => setEnrollForm(next)}
+          onEnroll={enrollTeacher}
+          classOptions={classOptions}
+          subjectOptions={subjectOptions}
+          genderOptions={GENDER_OPTIONS}
+          onToggleClass={handleToggleEnrollClass}
+          onToggleSubject={handleToggleEnrollSubject}
+        />
       )}
 
       {activeSection === "search" && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by teacher name, ID, class or subject"
-                className="w-full bg-transparent text-sm outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4">
-            <div className="rounded-xl border border-border bg-card p-3 max-h-[460px] overflow-auto">
-              {filteredTeachers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No teacher found.</p>
-              ) : (
-                <div className="space-y-2">
-                  {filteredTeachers.map((teacher) => (
-                    <button
-                      key={teacher.id}
-                      onClick={() => setSelectedTeacherId(teacher.id)}
-                      className={`w-full rounded-lg border px-3 py-2 text-left ${
-                        selectedTeacherId === teacher.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-background"
-                      }`}
-                    >
-                      <p className="font-medium text-foreground">{teacher.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {teacherCode(teacher.id)} | {teacher.classes.join(", ")}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-5">
-              {!selectedTeacher ? (
-                <p className="text-sm text-muted-foreground">Select a teacher to view full details.</p>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-foreground">{selectedTeacher.name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {teacherCode(selectedTeacher.id)} | {selectedTeacher.email}
-                    </p>
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-lg border border-border bg-background p-3">
-                      <p className="text-xs text-muted-foreground">Subjects</p>
-                      <p className="font-medium text-foreground">{selectedTeacher.subject || "N/A"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background p-3">
-                      <p className="text-xs text-muted-foreground">Classes</p>
-                      <p className="font-medium text-foreground">
-                        {selectedTeacher.classes.join(", ") || "N/A"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background p-3">
-                      <p className="text-xs text-muted-foreground">Phone</p>
-                      <p className="font-medium text-foreground">{selectedTeacher.phone || "N/A"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background p-3">
-                      <p className="text-xs text-muted-foreground">Qualification</p>
-                      <p className="font-medium text-foreground">
-                        {selectedTeacher.qualification || "N/A"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background p-3">
-                      <p className="text-xs text-muted-foreground">Gender</p>
-                      <p className="font-medium text-foreground">{selectedTeacher.gender || "N/A"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background p-3">
-                      <p className="text-xs text-muted-foreground">Join Date</p>
-                      <p className="font-medium text-foreground">{selectedTeacher.joinDate || "N/A"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background p-3 sm:col-span-2">
-                      <p className="text-xs text-muted-foreground">Address</p>
-                      <p className="font-medium text-foreground">{selectedTeacher.address || "N/A"}</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-border bg-background p-3">
-                    <p className="text-xs text-muted-foreground mb-2">Class-wise Subject Assignment</p>
-                    {selectedTeacher.classSubjects &&
-                    Object.keys(selectedTeacher.classSubjects).length > 0 ? (
-                      <div className="space-y-1">
-                        {Object.entries(selectedTeacher.classSubjects).map(([className, subjects]) => (
-                          <p key={className} className="text-sm text-foreground">
-                            <span className="font-medium">{className}:</span>{" "}
-                            {subjects.length > 0 ? subjects.join(", ") : "No subjects assigned"}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Class-wise mapping not available for this teacher.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <SearchTeacherSection
+          query={query}
+          onQueryChange={setQuery}
+          filteredTeachers={filteredTeachers}
+          selectedTeacherId={selectedTeacherId}
+          onSelectTeacherId={setSelectedTeacherId}
+          selectedTeacher={selectedTeacher}
+          editingTeacherId={editingTeacherId}
+          editForm={editForm}
+          onEditFormChange={handleEditFormChange}
+          onStartEditing={startEditing}
+          onCancelEdit={cancelEdit}
+          onSaveEdit={saveEdit}
+          onDeleteTeacher={deleteTeacher}
+          classOptions={classOptions}
+          subjectOptions={subjectOptions}
+          genderOptions={GENDER_OPTIONS}
+          onToggleClass={handleToggleEditClass}
+          onToggleSubject={handleToggleEditSubject}
+        />
       )}
 
       {activeSection === "reset" && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4 max-w-xl">
-          <div className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Reset Teacher Password</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Enter teacher ID to reset portal password. Default password after reset is teacher ID.
-          </p>
-          <div className="flex gap-2">
-            <input
-              value={resetId}
-              onChange={(e) => setResetId(e.target.value)}
-              placeholder="Teacher ID"
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-            <button
-              onClick={resetPassword}
-              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
+        <ResetTeacherSection
+          resetId={resetId}
+          onResetIdChange={setResetId}
+          onReset={resetPassword}
+        />
       )}
     </div>
   );
