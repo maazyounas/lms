@@ -8,7 +8,7 @@ import FeeTable from "./components/FeeTable";
 import ReceiptsTable from "./components/ReceiptsTable";
 import StudentOverviewCard from "./components/StudentOverviewCard";
 import type { FeeManagementProps } from "./types/fee";
-import { generateReceiptNo, studentCode, viewReceipt } from "./utils/feeUtils";
+import { generateReceiptNo, getEnrolledCourses, studentCode, viewReceipt } from "./utils/feeUtils";
 
 const FeeManagement = ({
   students,
@@ -20,6 +20,7 @@ const FeeManagement = ({
   showPendingOnly = false,
 }: FeeManagementProps) => {
   const [query, setQuery] = useState("");
+  const [receiptQuery, setReceiptQuery] = useState("");
   const [paymentMap, setPaymentMap] = useState<Record<number, string>>({});
   const [methodMap, setMethodMap] = useState<Record<number, PaymentMethod>>({});
   const [collectorMap, setCollectorMap] = useState<Record<number, string>>({});
@@ -58,6 +59,21 @@ const FeeManagement = ({
     if (filteredStudents.length === 1) return filteredStudents[0];
     return null;
   }, [filteredStudents, selectedStudentId]);
+
+  const filteredTransactions = useMemo(() => {
+    const q = receiptQuery.trim().toLowerCase();
+    if (!q) return transactions;
+    return transactions.filter(
+      (tx) =>
+        tx.receiptNo.toLowerCase().includes(q) ||
+        tx.id.toLowerCase().includes(q)
+    );
+  }, [receiptQuery, transactions]);
+
+  const selectedStudentTransactions = useMemo(() => {
+    if (!selectedStudent) return [];
+    return filteredTransactions.filter((tx) => tx.studentId === selectedStudent.id);
+  }, [filteredTransactions, selectedStudent]);
 
   const applyPayment = (studentId: number) => {
     const amount = Number(paymentMap[studentId] || 0);
@@ -180,9 +196,89 @@ const FeeManagement = ({
         onShowPendingOnly={() => setPendingOnly(true)}
       />
 
-      <FeeSearch query={query} onQueryChange={setQuery} />
+      <FeeSearch
+        query={query}
+        receiptQuery={receiptQuery}
+        onQueryChange={setQuery}
+        onReceiptQueryChange={setReceiptQuery}
+      />
 
-      {selectedStudent && <StudentOverviewCard student={selectedStudent} />}
+      {selectedStudent && (
+        <>
+          <StudentOverviewCard student={selectedStudent} />
+
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Past Transactions
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedStudent.name} · {studentCode(selectedStudent.id)}
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Courses:{" "}
+                {getEnrolledCourses(selectedStudent).length > 0
+                  ? getEnrolledCourses(selectedStudent).join(", ")
+                  : "No courses available"}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px]">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    {["Date", "Receipt #", "Amount", "Method", "Collector", "Remarks"].map(
+                      (head) => (
+                        <th
+                          key={head}
+                          className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                        >
+                          {head}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedStudentTransactions.length === 0 ? (
+                    <tr>
+                      <td
+                        className="px-3 py-4 text-sm text-muted-foreground text-center"
+                        colSpan={6}
+                      >
+                        No transactions found for this student.
+                      </td>
+                    </tr>
+                  ) : (
+                    selectedStudentTransactions.map((tx) => (
+                      <tr key={tx.id} className="border-b border-border last:border-0">
+                        <td className="px-3 py-2 text-sm">
+                          {new Date(tx.transactionDate).toLocaleDateString("en-PK", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </td>
+                        <td className="px-3 py-2 text-sm font-mono">{tx.receiptNo}</td>
+                        <td className="px-3 py-2 text-sm font-semibold">
+                          Rs. {tx.amount.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2 text-sm">{tx.method}</td>
+                        <td className="px-3 py-2 text-sm">{tx.collector}</td>
+                        <td className="px-3 py-2 text-sm">
+                          {tx.remarks || "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       <FeeTable
         students={filteredStudents}
@@ -209,7 +305,11 @@ const FeeManagement = ({
         onMarkPaid={markAsPaid}
       />
 
-      <ReceiptsTable transactions={transactions} onViewReceipt={viewReceipt} />
+      <ReceiptsTable
+        transactions={filteredTransactions}
+        students={students}
+        onViewReceipt={viewReceipt}
+      />
     </div>
   );
 };

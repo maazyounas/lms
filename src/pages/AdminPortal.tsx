@@ -3,18 +3,14 @@ import {
   LayoutDashboard,
   UserCog,
   Wallet,
-  BookOpen,
   GraduationCap,
   CalendarCheck,
   CalendarDays,
   Bell,
-  AlertTriangle,
-  Shield,
   Layers3,
   MessageSquare,
   CalendarClock,
   FileText,
-  Settings,
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import {
@@ -32,10 +28,11 @@ import AdminReports from "@/components/admin/reports/AdminReports";
 import AdminStudent from "@/components/admin/student/AdminStudent";
 import FeeManagement from "@/components/admin/fee/FeeManagement";
 import AdminTeacher, {
-  type AdminTeacherRecord,
 } from "@/components/admin/teacher/AdminTeacher";
+import type { AdminTeacherRecord } from "@/components/admin/teacher/types";
 import AdminParentCommunication from "@/components/admin/communication/AdminParentCommunication";
 import AdminTimetablePlanner from "@/components/admin/planner/AdminTimetablePlanner";
+import AdminCreateClass from "@/components/admin/create-class/AdminCreateClass";
 import type {
   AuditLogEntry,
   FeeTransaction,
@@ -43,8 +40,19 @@ import type {
   SmartAlert,
 } from "@/components/admin/types";
 
+const DEFAULT_SUBJECTS = [
+  "Mathematics",
+  "English",
+  "Physics",
+  "Chemistry",
+  "Urdu",
+  "Computer Science",
+  "Biology",
+];
+
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "create-class", label: "Create Class", icon: Layers3 },
   { id: "students", label: "Students", icon: UserCog },
   { id: "teachers", label: "Teachers", icon: GraduationCap },
   { id: "fee", label: "Fee Management", icon: Wallet },
@@ -77,6 +85,8 @@ const AdminPortal = () => {
   const [feeTransactions, setFeeTransactions] = useState<FeeTransaction[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [plannerAllocations, setPlannerAllocations] = useState<PlannerAllocation[]>([]);
+  const [customClasses, setCustomClasses] = useState<string[]>([]);
+  const [classSubjects, setClassSubjects] = useState<Record<string, string[]>>({});
   const currentAdmin = "Admin User";
 
   const addAuditLog = (entry: Omit<AuditLogEntry, "id" | "createdAt">) => {
@@ -161,6 +171,26 @@ const AdminPortal = () => {
     });
   }, [announcements, students]);
 
+  const classOptions = useMemo(() => {
+    const fromStudents = students.map((s) => s.grade);
+    const fromAllocations = plannerAllocations.map((a) => a.className);
+    return Array.from(new Set([...fromStudents, ...fromAllocations, ...customClasses])).sort();
+  }, [students, plannerAllocations, customClasses]);
+
+  const subjectOptions = useMemo(() => {
+    const fromTeachers = teachers.flatMap((t) =>
+      t.subject
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
+    const fromAllocations = plannerAllocations.map((a) => a.subject);
+    const fromClasses = Object.values(classSubjects).flat();
+    return Array.from(
+      new Set([...DEFAULT_SUBJECTS, ...fromTeachers, ...fromAllocations, ...fromClasses])
+    ).sort();
+  }, [teachers, plannerAllocations, classSubjects]);
+
   const renderContent = () => {
     switch (activeNav) {
       case "dashboard":
@@ -241,10 +271,42 @@ const AdminPortal = () => {
       case "planner":
         return (
           <AdminTimetablePlanner
-            students={students}
             teachers={teachers}
             allocations={plannerAllocations}
+            classOptions={classOptions}
+            subjectOptions={subjectOptions}
             onAllocationsChange={setPlannerAllocations}
+          />
+        );
+      case "create-class":
+        return (
+          <AdminCreateClass
+            classes={customClasses}
+            classSubjects={classSubjects}
+            onAddClass={(value) => {
+              setCustomClasses((prev) => [...prev, value]);
+              setClassSubjects((prev) => ({ ...prev, [value]: prev[value] ?? [] }));
+            }}
+            onDeleteClass={(value) => {
+              setCustomClasses((prev) => prev.filter((item) => item !== value));
+              setClassSubjects((prev) => {
+                const next = { ...prev };
+                delete next[value];
+                return next;
+              });
+            }}
+            onAddSubject={(className, value) =>
+              setClassSubjects((prev) => ({
+                ...prev,
+                [className]: [...(prev[className] ?? []), value],
+              }))
+            }
+            onDeleteSubject={(className, value) =>
+              setClassSubjects((prev) => ({
+                ...prev,
+                [className]: (prev[className] ?? []).filter((item) => item !== value),
+              }))
+            }
           />
         );
       case "attendance":

@@ -1,31 +1,23 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { Student } from "@/data/mockData";
 import type { AdminTeacherRecord } from "@/components/admin/teacher/types";
 import type { PlannerAllocation } from "@/components/admin/types";
 
 interface Props {
-  students: Student[];
   teachers: AdminTeacherRecord[];
   allocations: PlannerAllocation[];
+  classOptions: string[];
+  subjectOptions: string[];
   onAllocationsChange: (next: PlannerAllocation[]) => void;
 }
 
 const DAYS: PlannerAllocation["day"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const DEFAULT_SUBJECTS = [
-  "Mathematics",
-  "English",
-  "Physics",
-  "Chemistry",
-  "Urdu",
-  "Computer Science",
-  "Biology",
-];
 
 const AdminTimetablePlanner = ({
-  students,
   teachers,
   allocations,
+  classOptions,
+  subjectOptions,
   onAllocationsChange,
 }: Props) => {
   const [day, setDay] = useState<PlannerAllocation["day"]>("Mon");
@@ -33,30 +25,6 @@ const AdminTimetablePlanner = ({
   const [className, setClassName] = useState("");
   const [subject, setSubject] = useState("");
   const [teacherId, setTeacherId] = useState("");
-  const [newClassName, setNewClassName] = useState("");
-  const [newSubjectName, setNewSubjectName] = useState("");
-
-  const [customClasses, setCustomClasses] = useState<string[]>([]);
-  const [customSubjects, setCustomSubjects] = useState<string[]>([]);
-
-  const classOptions = useMemo(() => {
-    const fromStudents = students.map((s) => s.grade);
-    const fromAllocations = allocations.map((a) => a.className);
-    return Array.from(new Set([...fromStudents, ...fromAllocations, ...customClasses])).sort();
-  }, [students, allocations, customClasses]);
-
-  const subjectOptions = useMemo(() => {
-    const fromTeachers = teachers.flatMap((t) =>
-      t.subject
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    );
-    const fromAllocations = allocations.map((a) => a.subject);
-    return Array.from(
-      new Set([...DEFAULT_SUBJECTS, ...fromTeachers, ...fromAllocations, ...customSubjects])
-    ).sort();
-  }, [teachers, allocations, customSubjects]);
 
   const conflicts = useMemo(
     () =>
@@ -118,79 +86,9 @@ const AdminTimetablePlanner = ({
     toast.success("Allocation added without conflicts.");
   };
 
-  const addNewClass = () => {
-    const value = newClassName.trim();
-    if (!value) {
-      toast.error("Enter a class name.");
-      return;
-    }
-    if (classOptions.some((c) => c.toLowerCase() === value.toLowerCase())) {
-      toast.error("Class already exists.");
-      return;
-    }
-    setCustomClasses((prev) => [...prev, value]);
-    setClassName(value);
-    setNewClassName("");
-    toast.success("New class added.");
-  };
-
-  const addNewSubject = () => {
-    const value = newSubjectName.trim();
-    if (!value) {
-      toast.error("Enter a subject name.");
-      return;
-    }
-    if (subjectOptions.some((s) => s.toLowerCase() === value.toLowerCase())) {
-      toast.error("Subject already exists.");
-      return;
-    }
-    setCustomSubjects((prev) => [...prev, value]);
-    setSubject(value);
-    setNewSubjectName("");
-    toast.success("New subject added.");
-  };
-
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-foreground">Timetable + Workload Planner</h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <p className="font-semibold text-foreground">Add New Class</p>
-          <div className="flex gap-2">
-            <input
-              value={newClassName}
-              onChange={(e) => setNewClassName(e.target.value)}
-              placeholder="e.g. 12-A"
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-            <button
-              onClick={addNewClass}
-              className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-            >
-              Add Class
-            </button>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <p className="font-semibold text-foreground">Add New Subject</p>
-          <div className="flex gap-2">
-            <input
-              value={newSubjectName}
-              onChange={(e) => setNewSubjectName(e.target.value)}
-              placeholder="e.g. Pak Studies"
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-            <button
-              onClick={addNewSubject}
-              className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-            >
-              Add Subject
-            </button>
-          </div>
-        </div>
-      </div>
 
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
