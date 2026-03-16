@@ -11,6 +11,7 @@ interface Props {
   onRecordTransaction?: (transaction: FeeTransaction) => void;
   onAuditLog?: (entry: Omit<AuditLogEntry, "id" | "createdAt">) => void;
   currentAdmin?: string;
+  showPendingOnly?: boolean;
 }
 
 const FeeManagement = ({
@@ -20,6 +21,7 @@ const FeeManagement = ({
   onRecordTransaction,
   onAuditLog,
   currentAdmin = "Admin User",
+  showPendingOnly = false,
 }: Props) => {
   const [query, setQuery] = useState("");
   const [paymentMap, setPaymentMap] = useState<Record<number, string>>({});
@@ -44,23 +46,24 @@ const FeeManagement = ({
 
   const filteredStudents = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return students;
+    const base = showPendingOnly ? pendingStudents : students;
+    if (!q) return base;
 
-    return students.filter(
+    return base.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         String(s.id).includes(q) ||
         studentCode(s.id).toLowerCase().includes(q)
     );
-  }, [query, students]);
+  }, [query, pendingStudents, showPendingOnly, students]);
 
   const selectedStudent = useMemo(() => {
     if (selectedStudentId !== null) {
-      return students.find((s) => s.id === selectedStudentId) || null;
+      return filteredStudents.find((s) => s.id === selectedStudentId) || null;
     }
     if (filteredStudents.length === 1) return filteredStudents[0];
     return null;
-  }, [filteredStudents, selectedStudentId, students]);
+  }, [filteredStudents, selectedStudentId]);
 
   const generateReceiptNo = () => {
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -233,7 +236,9 @@ const FeeManagement = ({
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Students</p>
-          <p className="text-2xl font-bold text-foreground">{students.length}</p>
+          <p className="text-2xl font-bold text-foreground">
+            {showPendingOnly ? pendingStudents.length : students.length}
+          </p>
         </div>
       </div>
 

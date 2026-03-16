@@ -9,49 +9,70 @@ interface Props {
   currentAdmin: string;
 }
 
-type Channel = "sms" | "whatsapp" | "email";
-type ReminderType = "fees" | "attendance" | "results";
-type TargetGroup = "all" | "pending-fee" | "low-attendance" | "class";
+type ReminderType = "fees" | "absent" | "holiday" | "custom";
+type ClassTarget = "all" | "specific";
+type StudentTarget = "all" | "specific" | "one";
 
-const buildMessage = (type: ReminderType, student: Student) => {
+const buildMessage = (
+  type: ReminderType,
+  student: Student,
+  customTitle: string,
+  customBody: string
+) => {
   if (type === "fees") {
-    return `Dear Parent, ${student.name} has pending fee of Rs. ${student.fees.pending.toLocaleString()}. Please submit as soon as possible.`;
+    return {
+      title: "Fee Reminder",
+      body: `Dear Parent, ${student.name} has pending fee of Rs. ${student.fees.pending.toLocaleString()}. Please submit as soon as possible.`,
+    };
   }
-  if (type === "attendance") {
-    const pct =
-      student.attendance.total > 0
-        ? Math.round((student.attendance.present / student.attendance.total) * 100)
-        : 0;
-    return `Dear Parent, attendance of ${student.name} is ${pct}%. Please ensure regular attendance.`;
+  if (type === "absent") {
+    return {
+      title: "Absent Today",
+      body: `Dear Parent, ${student.name} was absent today. Please ensure regular attendance.`,
+    };
   }
-  const gpa = student.progress.at(-1)?.gpa?.toFixed(2) || "N/A";
-  return `Dear Parent, latest GPA for ${student.name} is ${gpa}. Please review student performance in portal.`;
+  if (type === "holiday") {
+    return {
+      title: "Easter Holidays",
+      body: `Dear Parent, school will remain closed for Easter holidays. Please check the calendar for exact dates.`,
+    };
+  }
+  return {
+    title: customTitle.trim() || "Message",
+    body: customBody.trim() || "Hello! This is a message from the school.",
+  };
 };
 
 const toDigits = (phone: string) => phone.replace(/[^0-9]/g, "");
 
 const AdminParentCommunication = ({ students, onAuditLog, currentAdmin }: Props) => {
-  const [channel, setChannel] = useState<Channel>("whatsapp");
   const [type, setType] = useState<ReminderType>("fees");
-  const [target, setTarget] = useState<TargetGroup>("pending-fee");
-  const [selectedClass, setSelectedClass] = useState("");
+  const [classTarget, setClassTarget] = useState<ClassTarget>("all");
+  const [studentTarget, setStudentTarget] = useState<StudentTarget>("all");
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [customTitle, setCustomTitle] = useState("");
+  const [customBody, setCustomBody] = useState("");
 
   const classes = useMemo(
     () => Array.from(new Set(students.map((s) => s.grade))).sort(),
     [students]
   );
 
+  const classFilteredStudents = useMemo(() => {
+    if (classTarget === "all") return students;
+    if (selectedClasses.length === 0) return [];
+    return students.filter((s) => selectedClasses.includes(s.grade));
+  }, [classTarget, selectedClasses, students]);
+
   const recipients = useMemo(() => {
-    if (target === "all") return students;
-    if (target === "pending-fee") return students.filter((s) => s.fees.pending > 0);
-    if (target === "low-attendance") {
-      return students.filter((s) => {
-        if (s.attendance.total === 0) return false;
-        return (s.attendance.present / s.attendance.total) * 100 < 75;
-      });
+    if (studentTarget === "all") return classFilteredStudents;
+    if (studentTarget === "one") {
+      return classFilteredStudents.filter((s) => s.id === selectedStudentId);
     }
-    return students.filter((s) => s.grade === selectedClass);
-  }, [selectedClass, students, target]);
+    return classFilteredStudents.filter((s) => selectedStudents.includes(s.id));
+  }, [classFilteredStudents, selectedStudentId, selectedStudents, studentTarget]);
 
   const sendReminder = () => {
     if (recipients.length === 0) {
@@ -59,82 +80,174 @@ const AdminParentCommunication = ({ students, onAuditLog, currentAdmin }: Props)
       return;
     }
 
-    const first = recipients[0];
-    const msg = encodeURIComponent(buildMessage(type, first));
-    if (channel === "email" && first.email) {
-      window.open(`mailto:${first.email}?subject=School Reminder&body=${msg}`, "_blank");
-    } else if (channel === "sms" && first.guardianPhone) {
-      window.open(`sms:${toDigits(first.guardianPhone)}?body=${msg}`, "_blank");
-    } else if (channel === "whatsapp" && first.guardianPhone) {
-      window.open(`https://wa.me/${toDigits(first.guardianPhone)}?text=${msg}`, "_blank");
+    const eligible = recipients.filter((r) => r.guardianPhone);
+    if (eligible.length === 0) {
+      toast.error("No guardian phone numbers found for selected students.");
+      return;
     }
+
+    eligible.forEach((student) => {
+      const { title, body } = buildMessage(type, student, customTitle, customBody);
+      const msg = encodeURIComponent(`${title}\n\n${body}`);
+      window.open(`https://wa.me/${toDigits(student.guardianPhone ?? "")}?text=${msg}`, "_blank");
+    });
 
     onAuditLog({
       actor: currentAdmin,
       module: "Student",
-      action: "Sent Parent Reminder",
-      details: `Channel: ${channel}, type: ${type}, recipients: ${recipients.length}, target: ${target}.`,
+      action: "Sent Parent WhatsApp",
+      details: `Type: ${type}, recipients: ${eligible.length}, classTarget: ${classTarget}, studentTarget: ${studentTarget}.`,
     });
-    toast.success(`Reminder triggered for ${recipients.length} parents.`);
+    toast.success(`WhatsApp messages opened for ${eligible.length} parents.`);
   };
 
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-foreground">Parent Communication</h1>
 
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <select
-            value={channel}
-            onChange={(e) => setChannel(e.target.value as Channel)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-          >
-            <option value="sms">SMS</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="email">Email</option>
-          </select>
+      <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Channel</p>
+            <p className="text-xs text-muted-foreground">WhatsApp only</p>
+          </div>
+          <span className="rounded-full bg-emerald-500/10 text-emerald-600 px-3 py-1 text-xs font-semibold">
+            WhatsApp
+          </span>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <select
             value={type}
             onChange={(e) => setType(e.target.value as ReminderType)}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
           >
             <option value="fees">Fee Reminder</option>
-            <option value="attendance">Attendance Reminder</option>
-            <option value="results">Result Reminder</option>
+            <option value="absent">Your Child Absent Today</option>
+            <option value="holiday">Easter Holidays</option>
+            <option value="custom">Custom Message</option>
           </select>
 
           <select
-            value={target}
-            onChange={(e) => setTarget(e.target.value as TargetGroup)}
+            value={classTarget}
+            onChange={(e) => {
+              const next = e.target.value as ClassTarget;
+              setClassTarget(next);
+              if (next === "all") setSelectedClasses([]);
+            }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
           >
-            <option value="all">All Parents</option>
-            <option value="pending-fee">Pending Fee Parents</option>
-            <option value="low-attendance">Low Attendance Parents</option>
-            <option value="class">By Class</option>
+            <option value="all">All Classes</option>
+            <option value="specific">Specific Classes</option>
           </select>
 
           <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            disabled={target !== "class"}
+            value={studentTarget}
+            onChange={(e) => {
+              const next = e.target.value as StudentTarget;
+              setStudentTarget(next);
+              if (next !== "specific") setSelectedStudents([]);
+              if (next !== "one") setSelectedStudentId(null);
+            }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
           >
-            <option value="">Select Class</option>
-            {classes.map((className) => (
-              <option key={className} value={className}>
-                {className}
-              </option>
-            ))}
+            <option value="all">All Students</option>
+            <option value="specific">Specific Students</option>
+            <option value="one">One Student</option>
           </select>
+        </div>
+
+        {classTarget === "specific" && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Select Classes</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {classes.map((className) => (
+                <label key={className} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedClasses.includes(className)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedClasses((prev) => [...prev, className]);
+                      } else {
+                        setSelectedClasses((prev) => prev.filter((c) => c !== className));
+                      }
+                    }}
+                  />
+                  {className}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {studentTarget === "specific" && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Select Students</p>
+            <div className="max-h-48 overflow-auto rounded-lg border border-border p-2 space-y-2">
+              {classFilteredStudents.map((student) => (
+                <label key={student.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedStudents.includes(student.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedStudents((prev) => [...prev, student.id]);
+                      } else {
+                        setSelectedStudents((prev) => prev.filter((id) => id !== student.id));
+                      }
+                    }}
+                  />
+                  {student.name} ({student.grade})
+                </label>
+              ))}
+              {classFilteredStudents.length === 0 && (
+                <p className="text-xs text-muted-foreground">No students for selected classes.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {studentTarget === "one" && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Select Student</p>
+            <select
+              value={selectedStudentId ?? ""}
+              onChange={(e) => setSelectedStudentId(Number(e.target.value) || null)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Select student</option>
+              {classFilteredStudents.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {student.name} ({student.grade})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input
+            type="text"
+            value={customTitle}
+            onChange={(e) => setCustomTitle(e.target.value)}
+            placeholder="Custom title (optional)"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          />
+          <input
+            type="text"
+            value={customBody}
+            onChange={(e) => setCustomBody(e.target.value)}
+            placeholder="Custom message description (optional)"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          />
         </div>
 
         <button
           onClick={sendReminder}
           className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
         >
-          Send One-Click Reminder
+          Send WhatsApp Message
         </button>
       </div>
 

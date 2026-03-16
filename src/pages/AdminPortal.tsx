@@ -43,7 +43,6 @@ import type {
   SmartAlert,
 } from "@/components/admin/types";
 
-
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "students", label: "Students", icon: UserCog },
@@ -59,6 +58,7 @@ const navItems = [
 
 const AdminPortal = () => {
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [feeFilter, setFeeFilter] = useState<"all" | "pending">("all");
   const [pendingLeaves, setPendingLeaves] = useState(3);
   const [announcements, setAnnouncements] = useState<Announcement[]>(ANNOUNCEMENTS);
   const [students, setStudents] = useState<Student[]>(STUDENTS);
@@ -80,6 +80,7 @@ const AdminPortal = () => {
   };
 
   const smartAlerts = useMemo<SmartAlert[]>(() => {
+    // ... (unchanged)
     const today = new Date();
     const dayMs = 24 * 60 * 60 * 1000;
     const alerts: SmartAlert[] = [];
@@ -165,6 +166,12 @@ const AdminPortal = () => {
                 setActiveNav("students");
               }
             }}
+            onOpenAnnouncements={() => setActiveNav("announcements")}
+            onOpenLeaveRequests={() => setActiveNav("leave-requests")}
+            onOpenFeeWithDues={() => {
+              setFeeFilter("pending");
+              setActiveNav("fee");
+            }}
           />
         );
       case "students":
@@ -188,6 +195,7 @@ const AdminPortal = () => {
             transactions={feeTransactions}
             onAuditLog={addAuditLog}
             currentAdmin={currentAdmin}
+            showPendingOnly={feeFilter === "pending"}
           />
         );
       case "teachers":
@@ -216,7 +224,6 @@ const AdminPortal = () => {
             onAllocationsChange={setPlannerAllocations}
           />
         );
-      
       case "attendance":
         return <AdminAttendance students={students} />;
       case "leave-requests":
@@ -243,9 +250,27 @@ const AdminPortal = () => {
       userAvatar="AU"
       navItems={navItems}
       activeNav={activeNav}
-      onNavChange={setActiveNav}
+      onNavChange={(id) => {
+        if (id === "fee") {
+          setFeeFilter("all");
+        }
+        setActiveNav(id);
+      }}
     >
-      {renderContent()}
+      {/* Page Title with subtle background */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          {navItems.find((item) => item.id === activeNav)?.label || "Admin Portal"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Manage students, teachers, fees, and more.
+        </p>
+      </div>
+
+      {/* Main content area with consistent card styling */}
+      <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+        {renderContent()}
+      </div>
     </PortalLayout>
   );
 };

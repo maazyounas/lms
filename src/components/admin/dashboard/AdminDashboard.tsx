@@ -1,3 +1,21 @@
+import { useMemo } from "react";
+import {
+  Users,
+  GraduationCap,
+  CalendarClock,
+  Wallet,
+  TrendingUp,
+  Bell,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import type { Announcement, Student } from "@/data/mockData";
 
 interface Props {
@@ -6,69 +24,386 @@ interface Props {
   announcements: Announcement[];
   pendingLeaves: number;
   onOpenStudent: (student: Student) => void;
+  onOpenAnnouncements: () => void;
+  onOpenLeaveRequests: () => void;
+  onOpenFeeWithDues: () => void;
 }
+
+// Helper to map grade to numeric value for bar length (optional)
+const gradeToValue = (grade: string): number => {
+  const map: Record<string, number> = {
+    "A+": 12,
+    A: 11,
+    "A-": 10,
+    "B+": 9,
+    B: 8,
+    "B-": 7,
+    "C+": 6,
+    C: 5,
+    "C-": 4,
+    D: 2,
+    F: 0,
+  };
+  return map[grade] ?? 0;
+};
+
+type TopStudent = {
+  name: string;
+  fullName: string;
+  className: string;
+  letterGrade: string;
+  percentage: number | null;
+  value: number;
+  id: number;
+};
+
+type TooltipPayload = {
+  payload: TopStudent;
+};
 
 const AdminDashboard = ({
   students,
   teachersCount,
-  announcements,
   pendingLeaves,
   onOpenStudent,
+  onOpenLeaveRequests,
+  onOpenFeeWithDues,
 }: Props) => {
-  const topStudents = [...students]
-    .sort((a, b) => (b.progress.at(-1)?.gpa || 0) - (a.progress.at(-1)?.gpa || 0))
-    .slice(0, 5);
+  const percentageToGrade = (percentage: number): string => {
+    if (percentage >= 90) return "A+";
+    if (percentage >= 85) return "A";
+    if (percentage >= 80) return "A-";
+    if (percentage >= 75) return "B+";
+    if (percentage >= 70) return "B";
+    if (percentage >= 65) return "B-";
+    if (percentage >= 60) return "C+";
+    if (percentage >= 55) return "C";
+    if (percentage >= 50) return "C-";
+    if (percentage >= 45) return "D";
+    return "F";
+  };
+
+  const getStudentGradeInfo = (student: Student) => {
+    const totals = student.tests.reduce(
+      (acc, test) => {
+        acc.marks += test.marks;
+        acc.total += test.total;
+        return acc;
+      },
+      { marks: 0, total: 0 }
+    );
+
+    if (totals.total === 0) {
+      return { letterGrade: "N/A", percentage: null, value: 0 };
+    }
+
+    const percentage = (totals.marks / totals.total) * 100;
+    const letterGrade = percentageToGrade(percentage);
+    return { letterGrade, percentage, value: gradeToValue(letterGrade) };
+  };
+
+  const buildTopStudents = (items: Student[]): TopStudent[] => {
+    return items
+      .map((s) => {
+        const gradeInfo = getStudentGradeInfo(s);
+        return {
+          name: s.name.split(" ")[0],
+          fullName: s.name,
+          className: s.grade,
+          letterGrade: gradeInfo.letterGrade,
+          percentage: gradeInfo.percentage,
+          value: gradeInfo.value,
+          id: s.id,
+        };
+      })
+      .sort((a, b) => {
+        if (b.value !== a.value) return b.value - a.value;
+        const aPct = a.percentage ?? -1;
+        const bPct = b.percentage ?? -1;
+        return bPct - aPct;
+      });
+  };
+
+  // Overall top 5 students by grading system
+  const topStudentsOverall = useMemo<TopStudent[]>(
+    () => buildTopStudents(students).slice(0, 5),
+    [students]
+  );
+
+  // Top performer per class
+  const topStudentsByClass = useMemo<TopStudent[]>(() => {
+    const byClass = new Map<string, TopStudent[]>();
+    buildTopStudents(students).forEach((student) => {
+      const list = byClass.get(student.className) ?? [];
+      list.push(student);
+      byClass.set(student.className, list);
+    });
+
+    return Array.from(byClass.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([className, list]) => {
+        const top = list[0];
+        return {
+          ...top,
+          name: className,
+          className,
+        };
+      });
+  }, [students]);
+
+  const studentsWithDues = students.filter((s) => s.fees.pending > 0).length;
+
+  // Custom tooltip for bar chart
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: TooltipPayload[];
+  }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+          <p className="font-medium text-foreground">{data.fullName}</p>
+          <p className="text-muted-foreground">Class: {data.className}</p>
+          <p className="text-muted-foreground">
+            Grade: {data.letterGrade}
+          </p>
+          {data.percentage !== null && (
+            <p className="text-muted-foreground">
+              Score: {data.percentage.toFixed(1)}%
+            </p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">Admin Dashboard</h1>
+    <div className="space-y-6">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Students</p>
-          <p className="text-2xl font-bold text-foreground">{students.length}</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Students</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {students.length}
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <Users className="h-6 w-6" />
+            </div>
+          </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Teachers</p>
-          <p className="text-2xl font-bold text-foreground">{teachersCount}</p>
+
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Teachers</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {teachersCount}
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <GraduationCap className="h-6 w-6" />
+            </div>
+          </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Pending Leaves</p>
-          <p className="text-2xl font-bold text-foreground">{pendingLeaves}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Students With Dues</p>
-          <p className="text-2xl font-bold text-foreground">
-            {students.filter((s) => s.fees.pending > 0).length}
-          </p>
-        </div>
+
+        <button
+          type="button"
+          onClick={onOpenLeaveRequests}
+          className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Pending Leaves</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {pendingLeaves}
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <CalendarClock className="h-6 w-6" />
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenFeeWithDues}
+          className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Students With Dues</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {studentsWithDues}
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <Wallet className="h-6 w-6" />
+            </div>
+          </div>
+        </button>
       </div>
 
+      {/* Charts and Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="font-semibold mb-3">Top Performers</h3>
-          {topStudents.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => onOpenStudent(s)}
-              className="w-full text-left flex items-center justify-between p-2 rounded hover:bg-muted/30"
-            >
-              <span className="text-sm text-foreground">{s.name}</span>
-              <span className="text-sm font-bold text-primary">
-                {s.progress.at(-1)?.gpa.toFixed(2)}
-              </span>
-            </button>
-          ))}
+        {/* Top Performers Chart */}
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">
+              Overall Top Performers
+            </h3>
+          </div>
+          {topStudentsOverall.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No student data available.
+            </p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={topStudentsOverall}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" domain={[0, 12]} hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                    width={60}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar
+                    dataKey="value"
+                    fill="hsl(var(--primary))"
+                    radius={[0, 4, 4, 0]}
+                    barSize={20}
+                    onClick={(_, index) => {
+                      if (index === undefined) return;
+                      const student = topStudentsOverall[index];
+                      const selected = students.find((s) => s.id === student.id);
+                      if (selected) {
+                        onOpenStudent(selected);
+                      }
+                    }}
+                    // Show grade label on bars
+                    label={{
+                      position: "right",
+                      content: ({ x, y, width, index }) => {
+                        if (index === undefined) return null;
+                        const student = topStudentsOverall[index];
+                        const xPos =
+                          typeof x === "number" ? x : Number(x ?? 0);
+                        const widthValue =
+                          typeof width === "number" ? width : Number(width ?? 0);
+                        const yPos =
+                          typeof y === "number" ? y : Number(y ?? 0);
+                        return (
+                          <text
+                            x={xPos + widthValue + 5}
+                            y={yPos + 12}
+                            fill="hsl(var(--foreground))"
+                            fontSize={12}
+                            fontWeight={500}
+                          >
+                            {student.letterGrade}
+                          </text>
+                        );
+                      },
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          <div className="mt-4 text-xs text-muted-foreground text-center">
+            Click on a bar to view student details
+          </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="font-semibold mb-3">Recent Announcements</h3>
-          {announcements.slice(0, 5).map((a) => (
-            <div key={a.id} className="p-2 border-b border-border last:border-0">
-              <p className="text-sm font-medium text-foreground">{a.title}</p>
-              <p className="text-xs text-muted-foreground">{a.date}</p>
+        {/* Class-wise Top Performers */}
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">
+              Class-wise Top Performers
+            </h3>
+          </div>
+          {topStudentsByClass.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No student data available.
+            </p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={topStudentsByClass}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" domain={[0, 12]} hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                    width={60}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar
+                    dataKey="value"
+                    fill="hsl(var(--primary))"
+                    radius={[0, 4, 4, 0]}
+                    barSize={20}
+                    onClick={(_, index) => {
+                      if (index === undefined) return;
+                      const student = topStudentsByClass[index];
+                      const selected = students.find((s) => s.id === student.id);
+                      if (selected) {
+                        onOpenStudent(selected);
+                      }
+                    }}
+                    label={{
+                      position: "right",
+                      content: ({ x, y, width, index }) => {
+                        if (index === undefined) return null;
+                        const student = topStudentsByClass[index];
+                        const xPos =
+                          typeof x === "number" ? x : Number(x ?? 0);
+                        const widthValue =
+                          typeof width === "number" ? width : Number(width ?? 0);
+                        const yPos =
+                          typeof y === "number" ? y : Number(y ?? 0);
+                        return (
+                          <text
+                            x={xPos + widthValue + 5}
+                            y={yPos + 12}
+                            fill="hsl(var(--foreground))"
+                            fontSize={12}
+                            fontWeight={500}
+                          >
+                            {student.letterGrade}
+                          </text>
+                        );
+                      },
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          ))}
+          )}
+          <div className="mt-4 text-xs text-muted-foreground text-center">
+            Best performer per class based on grading system
+          </div>
         </div>
       </div>
     </div>

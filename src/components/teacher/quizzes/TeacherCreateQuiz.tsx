@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PlusCircle, Trash2, X, Save } from "lucide-react";
-import { type Teacher } from "@/data/mockData";
+import { COURSES, type Teacher } from "@/data/mockData";
 
 // Types
 interface Option {
@@ -13,13 +13,14 @@ interface Question {
   text: string;
   options: Option[];
   correctOptionId: string | null;
-  // could add image, explanation later
 }
 
 interface Quiz {
   title: string;
   description: string;
-  classGrade: string; // e.g., "10-A"
+  classGrade: string; 
+  chapterName: string;
+  topicName: string;
   dueDate: string;
   questions: Question[];
 }
@@ -31,11 +32,30 @@ interface Props {
   teacher: Teacher;
 }
 
+interface Chapter {
+  name: string;
+  topics: string[];
+}
+
 const TeacherCreateQuiz = ({ teacher }: Props) => {
+  const [chapters, setChapters] = useState<Chapter[]>(() => {
+    const course = COURSES.find((c) => c.name === teacher.subject);
+    const fromCourse = course?.chapters?.map((ch) => ({
+      name: ch.chapterName,
+      topics: (ch.topics || []).map((t) => t.topicName),
+    })) ?? [];
+    return fromCourse;
+  });
+  const [newChapterName, setNewChapterName] = useState("");
+  const [newTopicName, setNewTopicName] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   const [quiz, setQuiz] = useState<Quiz>({
     title: "",
     description: "",
     classGrade: "",
+    chapterName: "",
+    topicName: "",
     dueDate: "",
     questions: [],
   });
@@ -130,6 +150,36 @@ const TeacherCreateQuiz = ({ teacher }: Props) => {
     });
   };
 
+  const handleAddChapter = () => {
+    const name = newChapterName.trim();
+    if (!name) return;
+    if (chapters.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+      alert("Chapter already exists.");
+      return;
+    }
+    const updated = [...chapters, { name, topics: [] }];
+    setChapters(updated);
+    setQuiz({ ...quiz, chapterName: name, topicName: "" });
+    setNewChapterName("");
+  };
+
+  const handleAddTopic = () => {
+    const name = newTopicName.trim();
+    if (!name) return;
+    if (!quiz.chapterName) {
+      alert("Select a chapter first.");
+      return;
+    }
+    const updated = chapters.map((c) =>
+      c.name === quiz.chapterName
+        ? { ...c, topics: c.topics.includes(name) ? c.topics : [...c.topics, name] }
+        : c
+    );
+    setChapters(updated);
+    setQuiz({ ...quiz, topicName: name });
+    setNewTopicName("");
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Validate
@@ -139,6 +189,14 @@ const TeacherCreateQuiz = ({ teacher }: Props) => {
     }
     if (!quiz.classGrade.trim()) {
       alert("Please select a class.");
+      return;
+    }
+    if (!quiz.chapterName.trim()) {
+      alert("Please select or add a chapter.");
+      return;
+    }
+    if (!quiz.topicName.trim()) {
+      alert("Please select or add a topic.");
       return;
     }
     if (!quiz.dueDate) {
@@ -240,6 +298,83 @@ const TeacherCreateQuiz = ({ teacher }: Props) => {
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Chapter <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={quiz.chapterName}
+                onChange={(e) => setQuiz({ ...quiz, chapterName: e.target.value, topicName: "" })}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-muted/30 text-sm text-foreground focus:border-primary outline-none"
+                required
+              >
+                <option value="">Select chapter</option>
+                {chapters.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newChapterName}
+                  onChange={(e) => setNewChapterName(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-border bg-muted/30 text-sm text-foreground focus:border-primary outline-none"
+                  placeholder="Add new chapter"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddChapter}
+                  className="px-3 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Topic <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={quiz.topicName}
+                onChange={(e) => setQuiz({ ...quiz, topicName: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-muted/30 text-sm text-foreground focus:border-primary outline-none"
+                required
+                disabled={!quiz.chapterName}
+              >
+                <option value="">{quiz.chapterName ? "Select topic" : "Select chapter first"}</option>
+                {chapters
+                  .find((c) => c.name === quiz.chapterName)
+                  ?.topics.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+              </select>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newTopicName}
+                  onChange={(e) => setNewTopicName(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-border bg-muted/30 text-sm text-foreground focus:border-primary outline-none"
+                  placeholder="Add new topic"
+                  disabled={!quiz.chapterName}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTopic}
+                  className="px-3 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 transition-colors"
+                  disabled={!quiz.chapterName}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Questions */}
@@ -339,14 +474,73 @@ const TeacherCreateQuiz = ({ teacher }: Props) => {
 
         {/* Submit */}
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Save className="h-4 w-4" /> Save Quiz
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted/40 transition-colors"
+            >
+              Preview Quiz
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Save className="h-4 w-4" /> Save Quiz
+            </button>
+          </div>
         </div>
       </form>
+
+      {previewOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-card border border-border rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Quiz Preview</h3>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Close preview"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <h4 className="text-xl font-semibold text-foreground">{quiz.title || "Untitled Quiz"}</h4>
+                {quiz.description && (
+                  <p className="text-sm text-muted-foreground mt-1">{quiz.description}</p>
+                )}
+                <div className="text-xs text-muted-foreground mt-2">
+                  {quiz.classGrade || "Class not set"} · {quiz.chapterName || "Chapter not set"} ·{" "}
+                  {quiz.topicName || "Topic not set"} · {quiz.dueDate || "Due date not set"}
+                </div>
+              </div>
+
+              {quiz.questions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No questions added yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {quiz.questions.map((q, idx) => (
+                    <div key={q.id} className="border border-border rounded-lg p-4">
+                      <p className="font-medium text-foreground">
+                        {idx + 1}. {q.text || "Untitled question"}
+                      </p>
+                      <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                        {q.options.map((opt) => (
+                          <li key={opt.id} className={opt.id === q.correctOptionId ? "text-success" : ""}>
+                            {opt.id === q.correctOptionId ? "✓ " : ""}{opt.text || "Untitled option"}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

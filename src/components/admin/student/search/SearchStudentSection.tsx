@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Search, Trash2 } from "lucide-react";
 import type { Student } from "@/data/mockData";
 import type { EditableStudent } from "../types";
@@ -32,6 +33,17 @@ const SearchStudentSection = ({
   onDelete,
   timetable,
 }: Props) => {
+  const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
+
+  useEffect(() => {
+    setViewMode("preview");
+  }, [selectedStudentId]);
+
+  const gradeSystem =
+    editableStudent && editableStudent.tests.length > 0
+      ? "Letter (A+ to F)"
+      : "N/A";
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
       <div className="xl:col-span-1 rounded-xl border border-border bg-card p-4 space-y-3">
@@ -77,44 +89,73 @@ const SearchStudentSection = ({
                   {studentCode(editableStudent.id)} | {editableStudent.grade} | {editableStudent.email}
                 </p>
               </div>
-              <button
-                onClick={() => onDelete(editableStudent)}
-                className="p-2 rounded-lg border border-border hover:bg-destructive/10 text-destructive"
-                title="Delete Student"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 rounded-lg border border-border p-1">
+                  <button
+                    onClick={() => setViewMode("preview")}
+                    className={`rounded-md px-3 py-1 text-xs font-medium ${
+                      viewMode === "preview"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    onClick={() => setViewMode("edit")}
+                    className={`rounded-md px-3 py-1 text-xs font-medium ${
+                      viewMode === "edit"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Edit
+                  </button>
+                </div>
+                <button
+                  onClick={() => onDelete(editableStudent)}
+                  className="p-2 rounded-lg border border-border hover:bg-destructive/10 text-destructive"
+                  title="Delete Student"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-3">
               <input
                 value={editableStudent.name}
                 onChange={(e) => onEditableStudentChange({ ...editableStudent, name: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2"
+                disabled={viewMode === "preview"}
+                className="rounded-lg border border-border bg-background px-3 py-2 disabled:cursor-not-allowed disabled:opacity-70"
                 placeholder="Name"
               />
               <input
                 value={editableStudent.email}
                 onChange={(e) => onEditableStudentChange({ ...editableStudent, email: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2"
+                disabled={viewMode === "preview"}
+                className="rounded-lg border border-border bg-background px-3 py-2 disabled:cursor-not-allowed disabled:opacity-70"
                 placeholder="Email"
               />
               <input
                 value={editableStudent.grade}
                 onChange={(e) => onEditableStudentChange({ ...editableStudent, grade: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2"
+                disabled={viewMode === "preview"}
+                className="rounded-lg border border-border bg-background px-3 py-2 disabled:cursor-not-allowed disabled:opacity-70"
                 placeholder="Class"
               />
               <input
                 value={editableStudent.phone}
                 onChange={(e) => onEditableStudentChange({ ...editableStudent, phone: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2"
+                disabled={viewMode === "preview"}
+                className="rounded-lg border border-border bg-background px-3 py-2 disabled:cursor-not-allowed disabled:opacity-70"
                 placeholder="Phone"
               />
               <input
                 value={editableStudent.guardian}
                 onChange={(e) => onEditableStudentChange({ ...editableStudent, guardian: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2"
+                disabled={viewMode === "preview"}
+                className="rounded-lg border border-border bg-background px-3 py-2 disabled:cursor-not-allowed disabled:opacity-70"
                 placeholder="Guardian"
               />
               <input
@@ -122,13 +163,15 @@ const SearchStudentSection = ({
                 onChange={(e) =>
                   onEditableStudentChange({ ...editableStudent, guardianPhone: e.target.value })
                 }
-                className="rounded-lg border border-border bg-background px-3 py-2"
+                disabled={viewMode === "preview"}
+                className="rounded-lg border border-border bg-background px-3 py-2 disabled:cursor-not-allowed disabled:opacity-70"
                 placeholder="Guardian Phone"
               />
               <input
                 value={editableStudent.address}
                 onChange={(e) => onEditableStudentChange({ ...editableStudent, address: e.target.value })}
-                className="rounded-lg border border-border bg-background px-3 py-2 md:col-span-2"
+                disabled={viewMode === "preview"}
+                className="rounded-lg border border-border bg-background px-3 py-2 md:col-span-2 disabled:cursor-not-allowed disabled:opacity-70"
                 placeholder="Address"
               />
             </div>
@@ -143,6 +186,7 @@ const SearchStudentSection = ({
                   >
                     <input
                       type="checkbox"
+                      disabled={viewMode === "preview"}
                       checked={editableStudent.tests.some((t) => t.subject === subject)}
                       onChange={() => onToggleSubject(subject)}
                     />
@@ -164,10 +208,8 @@ const SearchStudentSection = ({
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">Current GPA</p>
-                <p className="font-semibold">
-                  {editableStudent.progress.at(-1)?.gpa?.toFixed(2) || "N/A"}
-                </p>
+                <p className="text-xs text-muted-foreground">Grade System</p>
+                <p className="font-semibold">{gradeSystem}</p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-xs text-muted-foreground">Fee Status</p>
@@ -233,9 +275,11 @@ const SearchStudentSection = ({
               </div>
             </div>
 
-            <button onClick={onSave} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
-              Update Student Information
-            </button>
+            {viewMode === "edit" && (
+              <button onClick={onSave} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
+                Update Student Information
+              </button>
+            )}
           </div>
         )}
       </div>

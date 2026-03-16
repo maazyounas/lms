@@ -115,6 +115,7 @@ const buildAttendanceLog = (student: Student): AttendanceRecord[] => {
 
 const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedClass, setSelectedClass] = useState<string>("All Classes");
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [activeStatusFilter, setActiveStatusFilter] = useState<AttendanceStatus | null>(
     null
@@ -131,15 +132,21 @@ const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const classOptions = useMemo(() => {
+    const set = new Set(students.map((student) => student.grade));
+    return ["All Classes", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [students]);
 
   const filteredStudents = useMemo(() => {
-    if (!normalizedQuery) return students;
     return students.filter((student) => {
+      const classMatch = selectedClass === "All Classes" || student.grade === selectedClass;
+      if (!classMatch) return false;
+      if (!normalizedQuery) return true;
       const nameMatch = student.name.toLowerCase().includes(normalizedQuery);
       const idMatch = `${student.id}`.includes(normalizedQuery);
       return nameMatch || idMatch;
     });
-  }, [normalizedQuery, students]);
+  }, [normalizedQuery, selectedClass, students]);
 
   useEffect(() => {
     setAttendanceLogs((prev) => {
@@ -158,19 +165,6 @@ const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
       setSelectedStudentId(null);
     }
   }, [selectedStudentId, students]);
-
-  const averageAttendance =
-    students.length > 0
-      ? students.reduce((acc, s) => acc + (s.attendance.present / s.attendance.total) * 100, 0) /
-        students.length
-      : 0;
-
-  const getStudentCourses = (student: Student) => {
-    const courseSet = new Set<string>();
-    student.tests.forEach((test) => courseSet.add(test.subject));
-    student.assignments.forEach((assignment) => courseSet.add(assignment.subject));
-    return Array.from(courseSet).sort((a, b) => a.localeCompare(b));
-  };
 
   const selectedStudent = students.find((student) => student.id === selectedStudentId) ?? null;
   const selectedLog = useMemo(() => {
@@ -220,20 +214,38 @@ const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-5">Attendance Reports</h1>
 
-      <div className="mb-5 flex flex-col gap-2">
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Search Student
-        </label>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="Search by name or student ID"
-          className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
-        <p className="text-xs text-muted-foreground">
-          Showing {filteredStudents.length} of {students.length} students.
-        </p>
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Select Class
+          </label>
+          <select
+            value={selectedClass}
+            onChange={(event) => setSelectedClass(event.target.value)}
+            className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            {classOptions.map((cls) => (
+              <option key={cls} value={cls}>
+                {cls}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Search Student
+          </label>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search by name or student ID"
+            className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <p className="text-xs text-muted-foreground">
+            Showing {filteredStudents.length} of {students.length} students.
+          </p>
+        </div>
       </div>
 
       {filteredStudents.length === 0 && (
@@ -243,73 +255,31 @@ const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
       )}
 
       {filteredStudents.length > 0 && (
-        <div className="mt-6 space-y-4">
-          {filteredStudents.map((student) => {
-            const courses = getStudentCourses(student);
-            const pct =
-              student.attendance.total > 0
-                ? (student.attendance.present / student.attendance.total) * 100
-                : 0;
-
-            return (
-              <div
-                key={`course-attendance-${student.id}`}
-                className="rounded-xl border border-border bg-card p-4"
+        <div className="mt-6 overflow-hidden rounded-xl border border-border bg-card">
+          <div className="grid grid-cols-1 divide-y divide-border">
+            {filteredStudents.map((student) => (
+              <button
+                key={`student-row-${student.id}`}
+                type="button"
+                onClick={() => {
+                  setSelectedStudentId(student.id);
+                  setActiveStatusFilter(null);
+                  setActiveSubjectFilter("All Subjects");
+                }}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{student.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ID {student.id} Â· Class {student.grade}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedStudentId(student.id);
-                      setActiveStatusFilter(null);
-                      setActiveSubjectFilter("All Subjects");
-                    }}
-                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-primary/60 hover:text-primary"
-                  >
-                    Manage Records
-                  </button>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{student.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    Overall attendance:{" "}
-                    <span className="font-semibold text-foreground">{pct.toFixed(1)}%</span>
+                    ID {student.id} · Class {student.grade}
                   </p>
                 </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {(courses.length > 0 ? courses : ["Overall"]).map((course) => (
-                    <div
-                      key={`${student.id}-${course}`}
-                      className="rounded-lg border border-border/60 bg-background p-3"
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {course}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between text-sm text-foreground">
-                        <span>Present</span>
-                        <span className="font-semibold">{student.attendance.present}</span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-sm text-foreground">
-                        <span>Absent</span>
-                        <span className="font-semibold">{student.attendance.absent}</span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-sm text-foreground">
-                        <span>Late</span>
-                        <span className="font-semibold">{student.attendance.late}</span>
-                      </div>
-                      <div className="mt-2 text-sm font-semibold text-foreground">
-                        {pct.toFixed(1)}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                <span className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-primary/60 hover:text-primary">
+                  Manage Records
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

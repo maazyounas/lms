@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { ANNOUNCEMENTS, type Announcement } from "@/data/mockData";
+import { ANNOUNCEMENTS, STUDENTS, type Announcement } from "@/data/mockData";
 import { toast } from "sonner";
+import CreateAnnouncementModal from "@/components/teacher/notifications/components/CreateAnnouncementModal";
+import useOutsideClick from "@/components/teacher/notifications/hooks/useOutsideClick";
+import type { AnnouncementFormState } from "@/components/teacher/notifications/types";
 
 interface Props {
   onAnnouncementsChange?: (announcements: Announcement[]) => void;
@@ -9,15 +12,30 @@ interface Props {
 
 const AdminAnnouncements = ({ onAnnouncementsChange }: Props) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>(ANNOUNCEMENTS);
-  const [newAnn, setNewAnn] = useState({
+  const [modalOpen, setModalOpen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [form, setForm] = useState<AnnouncementFormState>({
     title: "",
-    priority: "medium" as "low" | "medium" | "high",
     content: "",
+    targetType: "all",
+    selectedClasses: [],
+    selectedStudents: [],
   });
 
   const createAnnouncement = () => {
-    if (!newAnn.title.trim() || !newAnn.content.trim()) {
+    if (!form.title.trim() || !form.content.trim()) {
       toast.error("Title and content are required.");
+      return;
+    }
+
+    if (form.targetType === "classes" && form.selectedClasses.length === 0) {
+      toast.error("Select at least one class");
+      return;
+    }
+
+    if (form.targetType === "students" && form.selectedStudents.length === 0) {
+      toast.error("Select at least one student");
       return;
     }
 
@@ -27,9 +45,9 @@ const AdminAnnouncements = ({ onAnnouncementsChange }: Props) => {
     const next = [
       {
         id: nextId,
-        title: newAnn.title,
-        content: newAnn.content,
-        priority: newAnn.priority,
+        title: form.title,
+        content: form.content,
+        priority,
         author: "Admin Office",
         date: new Date().toISOString().slice(0, 10),
       },
@@ -38,7 +56,15 @@ const AdminAnnouncements = ({ onAnnouncementsChange }: Props) => {
 
     setAnnouncements(next);
     onAnnouncementsChange?.(next);
-    setNewAnn({ title: "", priority: "medium", content: "" });
+    setForm({
+      title: "",
+      content: "",
+      targetType: "all",
+      selectedClasses: [],
+      selectedStudents: [],
+    });
+    setPriority("medium");
+    setModalOpen(false);
     toast.success("Announcement published.");
   };
 
@@ -48,45 +74,24 @@ const AdminAnnouncements = ({ onAnnouncementsChange }: Props) => {
     onAnnouncementsChange?.(next);
   };
 
+  const teacherClasses = useMemo(
+    () => Array.from(new Set(STUDENTS.map((student) => student.grade))),
+    []
+  );
+  const studentsInTeacherClasses = useMemo(() => STUDENTS, []);
+
+  useOutsideClick(modalRef, () => setModalOpen(false), modalOpen);
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-5">Announcements</h1>
-      <div className="rounded-xl border border-border bg-card p-4 mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input
-            value={newAnn.title}
-            onChange={(e) => setNewAnn((p) => ({ ...p, title: e.target.value }))}
-            placeholder="Title"
-            className="sm:col-span-2 border border-border rounded-lg px-3 py-2 text-sm bg-muted/30"
-          />
-          <select
-            value={newAnn.priority}
-            onChange={(e) =>
-              setNewAnn((p) => ({
-                ...p,
-                priority: e.target.value as "low" | "medium" | "high",
-              }))
-            }
-            className="border border-border rounded-lg px-3 py-2 text-sm bg-muted/30"
-          >
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </div>
-        <textarea
-          value={newAnn.content}
-          onChange={(e) => setNewAnn((p) => ({ ...p, content: e.target.value }))}
-          rows={3}
-          placeholder="Content"
-          className="w-full mt-3 border border-border rounded-lg px-3 py-2 text-sm bg-muted/30 resize-none"
-        />
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold text-foreground">Announcements</h1>
         <button
-          onClick={createAnnouncement}
-          className="mt-3 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm flex items-center gap-2"
+          onClick={() => setModalOpen(true)}
+          className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          Publish
+          Create
         </button>
       </div>
 
@@ -112,6 +117,20 @@ const AdminAnnouncements = ({ onAnnouncementsChange }: Props) => {
           </div>
         ))}
       </div>
+
+      <CreateAnnouncementModal
+        open={modalOpen}
+        modalRef={modalRef}
+        form={form}
+        teacherClasses={teacherClasses}
+        studentsInTeacherClasses={studentsInTeacherClasses}
+        showPriority
+        priority={priority}
+        onPriorityChange={setPriority}
+        onClose={() => setModalOpen(false)}
+        onFormChange={setForm}
+        onSubmit={createAnnouncement}
+      />
     </div>
   );
 };
