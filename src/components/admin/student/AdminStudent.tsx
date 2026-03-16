@@ -14,6 +14,8 @@ interface Props {
   onOpenFeeManagement: () => void;
   onAuditLog?: (entry: Omit<AuditLogEntry, "id" | "createdAt">) => void;
   currentAdmin?: string;
+  initialSection?: Section;
+  initialSelectedStudentId?: number | null;
 }
 
 type Section = "enroll" | "search" | "reset";
@@ -24,8 +26,10 @@ const AdminStudent = ({
   onOpenFeeManagement,
   onAuditLog,
   currentAdmin = "Admin User",
+  initialSection = "enroll",
+  initialSelectedStudentId = null,
 }: Props) => {
-  const [activeSection, setActiveSection] = useState<Section>("enroll");
+  const [activeSection, setActiveSection] = useState<Section>(initialSection);
 
   const [enrollForm, setEnrollForm] = useState<EnrollStudentForm>({
     name: "",
@@ -43,6 +47,17 @@ const AdminStudent = ({
 
   const [resetId, setResetId] = useState("");
   const [lastEnrolledId, setLastEnrolledId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setActiveSection(initialSection);
+  }, [initialSection]);
+
+  useEffect(() => {
+    if (initialSelectedStudentId === null || initialSelectedStudentId === undefined) {
+      return;
+    }
+    setSelectedStudentId(initialSelectedStudentId);
+  }, [initialSelectedStudentId]);
 
   const classes = useMemo(() => {
     const fromData = students.map((s) => s.grade);

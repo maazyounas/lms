@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { AuditLogEntry } from "@/components/admin/types";
 import { toast } from "sonner";
 import type { AdminTeacherRecord } from "./types";
@@ -12,6 +12,7 @@ interface Props {
   onTeachersChange: (next: AdminTeacherRecord[]) => void;
   onAuditLog?: (entry: Omit<AuditLogEntry, "id" | "createdAt">) => void;
   currentAdmin?: string;
+  initialSection?: Section;
 }
 
 type Section = "enroll" | "search" | "reset";
@@ -21,6 +22,7 @@ type EnrollForm = {
   id: string;
   gender: string;
   qualification: string;
+  courses: string[];
   classes: string[];
   classSubjects: Record<string, string[]>;
 };
@@ -30,11 +32,13 @@ type EditForm = {
   id: number;
   gender: string;
   qualification: string;
+  courses: string[];
   classes: string[];
   classSubjects: Record<string, string[]>;
 };
 
 type FormWithClasses = {
+  courses: string[];
   classes: string[];
   classSubjects: Record<string, string[]>;
 };
@@ -44,8 +48,9 @@ const AdminTeacher = ({
   onTeachersChange,
   onAuditLog,
   currentAdmin = "Admin User",
+  initialSection = "enroll",
 }: Props) => {
-  const [activeSection, setActiveSection] = useState<Section>("enroll");
+  const [activeSection, setActiveSection] = useState<Section>(initialSection);
   const [query, setQuery] = useState("");
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
   const [resetId, setResetId] = useState("");
@@ -55,12 +60,17 @@ const AdminTeacher = ({
     id: "",
     gender: "Male",
     qualification: "",
+    courses: [],
     classes: [],
     classSubjects: {},
   });
 
   const [editingTeacherId, setEditingTeacherId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
+  
+  useEffect(() => {
+    setActiveSection(initialSection);
+  }, [initialSection]);
 
   const classOptions = useMemo(() => {
     const dataClasses = teachers.flatMap((t) => t.classes);
@@ -117,7 +127,7 @@ const AdminTeacher = ({
       setForm({
         ...form,
         classes: [...form.classes, className],
-        classSubjects: { ...form.classSubjects, [className]: [] },
+        classSubjects: { ...form.classSubjects, [className]: [...form.courses] },
       });
     }
   };
@@ -142,11 +152,22 @@ const AdminTeacher = ({
     const name = enrollForm.name.trim();
     const numericId = Number(enrollForm.id.trim());
     const classes = enrollForm.classes;
+    const courses = enrollForm.courses;
     const gender = enrollForm.gender;
     const qualification = enrollForm.qualification.trim();
 
-    if (!name || !Number.isInteger(numericId) || numericId <= 0 || classes.length === 0) {
-      toast.error("Enter valid name, ID and at least one class");
+    if (!name || !Number.isInteger(numericId) || numericId <= 0) {
+      toast.error("Enter valid name and ID");
+      return;
+    }
+
+    if (courses.length === 0) {
+      toast.error("Assign at least one course");
+      return;
+    }
+
+    if (classes.length === 0) {
+      toast.error("Assign at least one class");
       return;
     }
 
@@ -155,8 +176,14 @@ const AdminTeacher = ({
       return;
     }
 
+    const effectiveClassSubjects = classes.reduce<Record<string, string[]>>((acc, className) => {
+      const current = enrollForm.classSubjects[className] || [];
+      acc[className] = current.length > 0 ? current : courses;
+      return acc;
+    }, {});
+
     const hasMissingSubjects = classes.some(
-      (className) => (enrollForm.classSubjects[className] || []).length === 0,
+      (className) => (effectiveClassSubjects[className] || []).length === 0,
     );
     if (hasMissingSubjects) {
       toast.error("Assign at least one subject for each selected class");
@@ -164,7 +191,7 @@ const AdminTeacher = ({
     }
 
     const allSubjects = Array.from(
-      new Set(classes.flatMap((className) => enrollForm.classSubjects[className] || [])),
+      new Set(classes.flatMap((className) => effectiveClassSubjects[className] || [])),
     );
 
     const newTeacher: AdminTeacherRecord = {
@@ -183,10 +210,7 @@ const AdminTeacher = ({
       joinDate: new Date().toISOString().slice(0, 10),
       emergencyContact: "",
       emergencyPhone: "",
-      classSubjects: classes.reduce<Record<string, string[]>>((acc, className) => {
-        acc[className] = enrollForm.classSubjects[className] || [];
-        return acc;
-      }, {}),
+      classSubjects: effectiveClassSubjects,
     };
 
     onTeachersChange([...teachers, newTeacher]);
@@ -201,6 +225,7 @@ const AdminTeacher = ({
       id: "",
       gender: "Male",
       qualification: "",
+      courses: [],
       classes: [],
       classSubjects: {},
     });
@@ -210,18 +235,25 @@ const AdminTeacher = ({
   const startEditing = (teacher: AdminTeacherRecord) => {
     setEditingTeacherId(teacher.id);
     let classSubjects = teacher.classSubjects ? { ...teacher.classSubjects } : {};
+    let courses: string[] = [];
     if (Object.keys(classSubjects).length === 0 && teacher.classes.length > 0) {
       const subjects = teacher.subject.split(",").map((s) => s.trim()).filter(Boolean);
+      courses = subjects;
       classSubjects = teacher.classes.reduce((acc, cls) => {
         acc[cls] = subjects;
         return acc;
       }, {} as Record<string, string[]>);
+    } else {
+      courses = Array.from(
+        new Set(Object.values(classSubjects).flatMap((subjects) => subjects)),
+      );
     }
     setEditForm({
       name: teacher.name,
       id: teacher.id,
       gender: teacher.gender || "Male",
       qualification: teacher.qualification || "",
+      courses,
       classes: [...teacher.classes],
       classSubjects,
     });
@@ -237,11 +269,22 @@ const AdminTeacher = ({
 
     const name = editForm.name.trim();
     const classes = editForm.classes;
+    const courses = editForm.courses;
     const gender = editForm.gender;
     const qualification = editForm.qualification.trim();
 
-    if (!name || classes.length === 0) {
-      toast.error("Name and at least one class are required");
+    if (!name) {
+      toast.error("Name is required");
+      return;
+    }
+
+    if (courses.length === 0) {
+      toast.error("Assign at least one course");
+      return;
+    }
+
+    if (classes.length === 0) {
+      toast.error("Assign at least one class");
       return;
     }
 
@@ -250,8 +293,14 @@ const AdminTeacher = ({
       return;
     }
 
+    const effectiveClassSubjects = classes.reduce<Record<string, string[]>>((acc, className) => {
+      const current = editForm.classSubjects[className] || [];
+      acc[className] = current.length > 0 ? current : courses;
+      return acc;
+    }, {});
+
     const hasMissingSubjects = classes.some(
-      (className) => (editForm.classSubjects[className] || []).length === 0,
+      (className) => (effectiveClassSubjects[className] || []).length === 0,
     );
     if (hasMissingSubjects) {
       toast.error("Assign at least one subject for each selected class");
@@ -259,7 +308,7 @@ const AdminTeacher = ({
     }
 
     const allSubjects = Array.from(
-      new Set(classes.flatMap((className) => editForm.classSubjects[className] || [])),
+      new Set(classes.flatMap((className) => effectiveClassSubjects[className] || [])),
     );
 
     const updatedTeacher: AdminTeacherRecord = {
@@ -270,10 +319,7 @@ const AdminTeacher = ({
       qualification,
       subject: allSubjects.join(", "),
       classes,
-      classSubjects: classes.reduce<Record<string, string[]>>((acc, className) => {
-        acc[className] = editForm.classSubjects[className] || [];
-        return acc;
-      }, {}),
+      classSubjects: effectiveClassSubjects,
     };
 
     const newTeachers = teachers.map((t) =>
@@ -332,6 +378,29 @@ const AdminTeacher = ({
     toggleClass(enrollForm, (next) => setEnrollForm(next), className);
   const handleToggleEnrollSubject = (className: string, subject: string) =>
     toggleSubjectForClass(enrollForm, (next) => setEnrollForm(next), className, subject);
+  const handleToggleEnrollCourse = (course: string) =>
+    setEnrollForm((prev) => {
+      const prevCourses = prev.courses;
+      const nextCourses = prevCourses.includes(course)
+        ? prevCourses.filter((x) => x !== course)
+        : [...prevCourses, course];
+      const nextClassSubjects = { ...prev.classSubjects };
+      prev.classes.forEach((className) => {
+        const current = nextClassSubjects[className] || [];
+        const isAuto =
+          current.length === 0 ||
+          (current.length === prevCourses.length &&
+            current.every((item) => prevCourses.includes(item)));
+        if (isAuto) {
+          nextClassSubjects[className] = nextCourses;
+        } else {
+          nextClassSubjects[className] = current.filter((item) =>
+            nextCourses.includes(item),
+          );
+        }
+      });
+      return { ...prev, courses: nextCourses, classSubjects: nextClassSubjects };
+    });
 
   const handleToggleEditClass = (className: string) => {
     if (!editForm) return;
@@ -340,6 +409,32 @@ const AdminTeacher = ({
   const handleToggleEditSubject = (className: string, subject: string) => {
     if (!editForm) return;
     toggleSubjectForClass(editForm, (next) => setEditForm(next), className, subject);
+  };
+  const handleToggleEditCourse = (course: string) => {
+    if (!editForm) return;
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      const prevCourses = prev.courses;
+      const nextCourses = prevCourses.includes(course)
+        ? prevCourses.filter((x) => x !== course)
+        : [...prevCourses, course];
+      const nextClassSubjects = { ...prev.classSubjects };
+      prev.classes.forEach((className) => {
+        const current = nextClassSubjects[className] || [];
+        const isAuto =
+          current.length === 0 ||
+          (current.length === prevCourses.length &&
+            current.every((item) => prevCourses.includes(item)));
+        if (isAuto) {
+          nextClassSubjects[className] = nextCourses;
+        } else {
+          nextClassSubjects[className] = current.filter((item) =>
+            nextCourses.includes(item),
+          );
+        }
+      });
+      return { ...prev, courses: nextCourses, classSubjects: nextClassSubjects };
+    });
   };
 
   const handleEditFormChange = (next: EditForm) => setEditForm(next);
@@ -403,6 +498,7 @@ const AdminTeacher = ({
           subjectOptions={subjectOptions}
           genderOptions={GENDER_OPTIONS}
           onToggleClass={handleToggleEnrollClass}
+          onToggleCourse={handleToggleEnrollCourse}
           onToggleSubject={handleToggleEnrollSubject}
         />
       )}
@@ -426,6 +522,7 @@ const AdminTeacher = ({
           subjectOptions={subjectOptions}
           genderOptions={GENDER_OPTIONS}
           onToggleClass={handleToggleEditClass}
+          onToggleCourse={handleToggleEditCourse}
           onToggleSubject={handleToggleEditSubject}
         />
       )}

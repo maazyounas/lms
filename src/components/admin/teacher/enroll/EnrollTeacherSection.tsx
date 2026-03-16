@@ -17,6 +17,7 @@ interface Props {
   subjectOptions: string[];
   genderOptions: string[];
   onToggleClass: (className: string) => void;
+  onToggleCourse: (course: string) => void;
   onToggleSubject: (className: string, subject: string) => void;
 }
 
@@ -28,6 +29,7 @@ const EnrollTeacherSection = ({
   subjectOptions,
   genderOptions,
   onToggleClass,
+  onToggleCourse,
   onToggleSubject,
 }: Props) => {
   return (
@@ -74,6 +76,7 @@ const EnrollTeacherSection = ({
         form={enrollForm}
         classOptions={classOptions}
         subjectOptions={subjectOptions}
+        onToggleCourse={onToggleCourse}
         onToggleClass={onToggleClass}
         onToggleSubject={onToggleSubject}
       />

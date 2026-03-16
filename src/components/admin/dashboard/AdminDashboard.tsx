@@ -24,6 +24,8 @@ interface Props {
   announcements: Announcement[];
   pendingLeaves: number;
   onOpenStudent: (student: Student) => void;
+  onOpenStudentSearch: () => void;
+  onOpenTeacherSearch: () => void;
   onOpenAnnouncements: () => void;
   onOpenLeaveRequests: () => void;
   onOpenFeeWithDues: () => void;
@@ -66,6 +68,8 @@ const AdminDashboard = ({
   teachersCount,
   pendingLeaves,
   onOpenStudent,
+  onOpenStudentSearch,
+  onOpenTeacherSearch,
   onOpenLeaveRequests,
   onOpenFeeWithDues,
 }: Props) => {
@@ -186,7 +190,11 @@ const AdminDashboard = ({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
+        <button
+          type="button"
+          onClick={onOpenStudentSearch}
+          className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow text-left"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Students</p>
@@ -198,9 +206,13 @@ const AdminDashboard = ({
               <Users className="h-6 w-6" />
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
+        <button
+          type="button"
+          onClick={onOpenTeacherSearch}
+          className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow text-left"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Teachers</p>
@@ -212,7 +224,7 @@ const AdminDashboard = ({
               <GraduationCap className="h-6 w-6" />
             </div>
           </div>
-        </div>
+        </button>
 
         <button
           type="button"

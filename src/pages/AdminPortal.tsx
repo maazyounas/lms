@@ -59,6 +59,15 @@ const navItems = [
 const AdminPortal = () => {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [feeFilter, setFeeFilter] = useState<"all" | "pending">("all");
+  const [studentSection, setStudentSection] = useState<"enroll" | "search" | "reset">(
+    "enroll"
+  );
+  const [dashboardSelectedStudentId, setDashboardSelectedStudentId] = useState<
+    number | null
+  >(null);
+  const [teacherSection, setTeacherSection] = useState<"enroll" | "search" | "reset">(
+    "enroll"
+  );
   const [pendingLeaves, setPendingLeaves] = useState(3);
   const [announcements, setAnnouncements] = useState<Announcement[]>(ANNOUNCEMENTS);
   const [students, setStudents] = useState<Student[]>(STUDENTS);
@@ -163,8 +172,19 @@ const AdminPortal = () => {
             pendingLeaves={pendingLeaves}
             onOpenStudent={(student) => {
               if (student) {
+                setStudentSection("search");
+                setDashboardSelectedStudentId(student.id);
                 setActiveNav("students");
               }
+            }}
+            onOpenStudentSearch={() => {
+              setStudentSection("search");
+              setDashboardSelectedStudentId(null);
+              setActiveNav("students");
+            }}
+            onOpenTeacherSearch={() => {
+              setTeacherSection("search");
+              setActiveNav("teachers");
             }}
             onOpenAnnouncements={() => setActiveNav("announcements")}
             onOpenLeaveRequests={() => setActiveNav("leave-requests")}
@@ -182,6 +202,8 @@ const AdminPortal = () => {
             onOpenFeeManagement={() => setActiveNav("fee")}
             onAuditLog={addAuditLog}
             currentAdmin={currentAdmin}
+            initialSection={studentSection}
+            initialSelectedStudentId={dashboardSelectedStudentId}
           />
         );
       case "fee":
@@ -205,6 +227,7 @@ const AdminPortal = () => {
             onTeachersChange={setTeachers}
             onAuditLog={addAuditLog}
             currentAdmin={currentAdmin}
+            initialSection={teacherSection}
           />
         );
       case "communication":

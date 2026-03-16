@@ -5,6 +5,7 @@ export type AdminTeacherRecord = Teacher & {
 };
 
 export type ClassSubjectForm = {
+  courses: string[];
   classes: string[];
   classSubjects: Record<string, string[]>;
 };

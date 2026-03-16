@@ -28,6 +28,7 @@ interface Props {
   subjectOptions: string[];
   genderOptions: string[];
   onToggleClass: (className: string) => void;
+  onToggleCourse: (course: string) => void;
   onToggleSubject: (className: string, subject: string) => void;
 }
 
@@ -49,11 +50,12 @@ const SearchTeacherSection = ({
   subjectOptions,
   genderOptions,
   onToggleClass,
+  onToggleCourse,
   onToggleSubject,
 }: Props) => {
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-card p-4">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div className="xl:col-span-1 rounded-xl border border-border bg-card p-4 space-y-3">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
@@ -63,10 +65,8 @@ const SearchTeacherSection = ({
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4">
-        <div className="rounded-xl border border-border bg-card p-3 max-h-[460px] overflow-auto">
+        <div className="max-h-[500px] overflow-auto">
           {filteredTeachers.length === 0 ? (
             <p className="text-sm text-muted-foreground">No teacher found.</p>
           ) : (
@@ -90,154 +90,155 @@ const SearchTeacherSection = ({
             </div>
           )}
         </div>
+      </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
-          {!selectedTeacher ? (
-            <p className="text-sm text-muted-foreground">Select a teacher to view full details.</p>
-          ) : editingTeacherId === selectedTeacher.id && editForm ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Edit Teacher</h2>
-                <button
-                  onClick={onCancelEdit}
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </button>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <input
-                  value={editForm.name}
-                  onChange={(e) => onEditFormChange({ ...editForm, name: e.target.value })}
-                  placeholder="Teacher Name"
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-                <input
-                  value={editForm.id}
-                  onChange={(e) => onEditFormChange({ ...editForm, id: Number(e.target.value) || 0 })}
-                  placeholder="Teacher ID"
-                  type="number"
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <select
-                  value={editForm.gender}
-                  onChange={(e) => onEditFormChange({ ...editForm, gender: e.target.value })}
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  {genderOptions.map((g) => (
-                    <option key={g}>{g}</option>
-                  ))}
-                </select>
-                <input
-                  value={editForm.qualification}
-                  onChange={(e) => onEditFormChange({ ...editForm, qualification: e.target.value })}
-                  placeholder="Qualification"
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-
-              <ClassSubjectAssignment
-                form={editForm}
-                classOptions={classOptions}
-                subjectOptions={subjectOptions}
-                onToggleClass={onToggleClass}
-                onToggleSubject={onToggleSubject}
-              />
-
+      <div className="xl:col-span-2 rounded-xl border border-border bg-card p-5">
+        {!selectedTeacher ? (
+          <p className="text-sm text-muted-foreground">Select a teacher to view full details.</p>
+        ) : editingTeacherId === selectedTeacher.id && editForm ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Edit Teacher</h2>
               <button
-                onClick={onSaveEdit}
-                className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+                onClick={onCancelEdit}
+                className="text-sm text-muted-foreground hover:text-foreground"
               >
-                Save Changes
+                Cancel
               </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">{selectedTeacher.name}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {teacherCode(selectedTeacher.id)} | {selectedTeacher.email}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => onStartEditing(selectedTeacher)}
-                    className="p-2 rounded-lg border border-border hover:bg-muted"
-                    title="Edit Teacher"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => onDeleteTeacher(selectedTeacher)}
-                    className="p-2 rounded-lg border border-border hover:bg-destructive/10 text-destructive"
-                    title="Delete Teacher"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <input
+                value={editForm.name}
+                onChange={(e) => onEditFormChange({ ...editForm, name: e.target.value })}
+                placeholder="Teacher Name"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+              <input
+                value={editForm.id}
+                onChange={(e) => onEditFormChange({ ...editForm, id: Number(e.target.value) || 0 })}
+                placeholder="Teacher ID"
+                type="number"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <select
+                value={editForm.gender}
+                onChange={(e) => onEditFormChange({ ...editForm, gender: e.target.value })}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              >
+                {genderOptions.map((g) => (
+                  <option key={g}>{g}</option>
+                ))}
+              </select>
+              <input
+                value={editForm.qualification}
+                onChange={(e) => onEditFormChange({ ...editForm, qualification: e.target.value })}
+                placeholder="Qualification"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
 
-              <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <p className="text-xs text-muted-foreground">Gender</p>
-                  <p className="font-medium text-foreground">{selectedTeacher.gender || "N/A"}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <p className="text-xs text-muted-foreground">Qualification</p>
-                  <p className="font-medium text-foreground">
-                    {selectedTeacher.qualification || "N/A"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <p className="text-xs text-muted-foreground">Subjects</p>
-                  <p className="font-medium text-foreground">{selectedTeacher.subject || "N/A"}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <p className="text-xs text-muted-foreground">Classes</p>
-                  <p className="font-medium text-foreground">
-                    {selectedTeacher.classes.join(", ") || "N/A"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="font-medium text-foreground">{selectedTeacher.phone || "N/A"}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <p className="text-xs text-muted-foreground">Join Date</p>
-                  <p className="font-medium text-foreground">{selectedTeacher.joinDate || "N/A"}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-3 sm:col-span-2">
-                  <p className="text-xs text-muted-foreground">Address</p>
-                  <p className="font-medium text-foreground">{selectedTeacher.address || "N/A"}</p>
-                </div>
-              </div>
+            <ClassSubjectAssignment
+              form={editForm}
+              classOptions={classOptions}
+              subjectOptions={subjectOptions}
+              onToggleCourse={onToggleCourse}
+              onToggleClass={onToggleClass}
+              onToggleSubject={onToggleSubject}
+            />
 
-              <div className="rounded-lg border border-border bg-background p-3">
-                <p className="text-xs text-muted-foreground mb-2">
-                  Class-wise Subject Assignment
+            <button
+              onClick={onSaveEdit}
+              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+            >
+              Save Changes
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">{selectedTeacher.name}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {teacherCode(selectedTeacher.id)} | {selectedTeacher.email}
                 </p>
-                {selectedTeacher.classSubjects &&
-                Object.keys(selectedTeacher.classSubjects).length > 0 ? (
-                  <div className="space-y-1">
-                    {Object.entries(selectedTeacher.classSubjects).map(([className, subjects]) => (
-                      <p key={className} className="text-sm text-foreground">
-                        <span className="font-medium">{className}:</span>{" "}
-                        {subjects.length > 0 ? subjects.join(", ") : "No subjects assigned"}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Class-wise mapping not available for this teacher.
-                  </p>
-                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onStartEditing(selectedTeacher)}
+                  className="p-2 rounded-lg border border-border hover:bg-muted"
+                  title="Edit Teacher"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => onDeleteTeacher(selectedTeacher)}
+                  className="p-2 rounded-lg border border-border hover:bg-destructive/10 text-destructive"
+                  title="Delete Teacher"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="grid sm:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border border-border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Gender</p>
+                <p className="font-medium text-foreground">{selectedTeacher.gender || "N/A"}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Qualification</p>
+                <p className="font-medium text-foreground">
+                  {selectedTeacher.qualification || "N/A"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Subjects</p>
+                <p className="font-medium text-foreground">{selectedTeacher.subject || "N/A"}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Classes</p>
+                <p className="font-medium text-foreground">
+                  {selectedTeacher.classes.join(", ") || "N/A"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Phone</p>
+                <p className="font-medium text-foreground">{selectedTeacher.phone || "N/A"}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Join Date</p>
+                <p className="font-medium text-foreground">{selectedTeacher.joinDate || "N/A"}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3 sm:col-span-2">
+                <p className="text-xs text-muted-foreground">Address</p>
+                <p className="font-medium text-foreground">{selectedTeacher.address || "N/A"}</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground mb-2">
+                Class-wise Subject Assignment
+              </p>
+              {selectedTeacher.classSubjects &&
+              Object.keys(selectedTeacher.classSubjects).length > 0 ? (
+                <div className="space-y-1">
+                  {Object.entries(selectedTeacher.classSubjects).map(([className, subjects]) => (
+                    <p key={className} className="text-sm text-foreground">
+                      <span className="font-medium">{className}:</span>{" "}
+                      {subjects.length > 0 ? subjects.join(", ") : "No subjects assigned"}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Class-wise mapping not available for this teacher.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
