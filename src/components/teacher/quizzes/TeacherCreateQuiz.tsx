@@ -16,6 +16,7 @@ interface Question {
 }
 
 interface Quiz {
+  id?: string;
   title: string;
   description: string;
   classGrade: string; 
@@ -23,6 +24,10 @@ interface Quiz {
   topicName: string;
   dueDate: string;
   questions: Question[];
+  teacherName?: string;
+  teacherId?: number;
+  subject?: string;
+  createdAt?: string;
 }
 
 const MAX_QUESTIONS = 20;
@@ -219,10 +224,32 @@ const TeacherCreateQuiz = ({ teacher }: Props) => {
         return;
       }
     }
-    // Mock save
-    console.log("Quiz saved:", quiz);
-    alert("Quiz created successfully! (Check console)");
-    // Optionally reset or navigate away
+    const savedQuiz: Quiz = {
+      ...quiz,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      teacherName: teacher.name,
+      teacherId: teacher.id,
+      subject: teacher.subject,
+      createdAt: new Date().toISOString(),
+    };
+
+    const storageKey = "teacher-quizzes";
+    const existingRaw = localStorage.getItem(storageKey);
+    const existing = existingRaw ? (JSON.parse(existingRaw) as Quiz[]) : [];
+    localStorage.setItem(storageKey, JSON.stringify([savedQuiz, ...existing]));
+
+    console.log("Quiz saved:", savedQuiz);
+    alert("Quiz created successfully!");
+
+    setQuiz({
+      title: "",
+      description: "",
+      classGrade: "",
+      chapterName: "",
+      topicName: "",
+      dueDate: "",
+      questions: [],
+    });
   };
 
   return (

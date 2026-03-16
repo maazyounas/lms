@@ -88,25 +88,6 @@ const CreateAnnouncementModal = ({
             </select>
           </div>
 
-          {showPriority && onPriorityChange && (
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) =>
-                  onPriorityChange(e.target.value as "low" | "medium" | "high")
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              >
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-          )}
-
           {form.targetType === "classes" && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">

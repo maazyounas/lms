@@ -2,16 +2,44 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Mail, Lock, ChevronRight, BookOpen, Users, Trophy, Award } from "lucide-react";
 import loginBg from "@/assets/login-bg.jpg";
+import { toast } from "sonner";
 
 const Login = () => {
   const [role, setRole] = useState<"admin" | "teacher" | "student">("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotId, setForgotId] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/${role}`);
+  };
+
+  const handleForgotSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = forgotId.trim();
+    if (!value) {
+      toast.error("Enter your ID");
+      return;
+    }
+
+    const key = "admin-announcements";
+    const existingRaw = localStorage.getItem(key);
+    const existing = existingRaw ? (JSON.parse(existingRaw) as unknown[]) : [];
+    const announcement = {
+      id: Date.now(),
+      title: "Password Reset Request",
+      content: `Reset request from ${role} ID: ${value}`,
+      priority: "medium",
+      author: "Login Portal",
+      date: new Date().toISOString().slice(0, 10),
+    };
+    localStorage.setItem(key, JSON.stringify([announcement, ...existing]));
+    toast.success("Password reset request sent to admin.");
+    setForgotId("");
+    setForgotOpen(false);
   };
 
   return (
@@ -114,7 +142,11 @@ const Login = () => {
                 <input type="checkbox" className="rounded border-border accent-primary" />
                 Remember me
               </label>
-              <button type="button" className="text-primary hover:underline">
+              <button
+                type="button"
+                onClick={() => setForgotOpen(true)}
+                className="text-primary hover:underline"
+              >
                 Forgot password?
               </button>
             </div>
@@ -132,6 +164,45 @@ const Login = () => {
           </p>
         </div>
       </div>
+
+      {forgotOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Reset Password</h3>
+              <p className="text-sm text-muted-foreground">
+                Enter your ID to send a reset request to admin.
+              </p>
+            </div>
+            <form onSubmit={handleForgotSubmit} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">ID</label>
+                <input
+                  value={forgotId}
+                  onChange={(e) => setForgotId(e.target.value)}
+                  placeholder={`${role} ID`}
+                  className="w-full h-11 px-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(false)}
+                  className="px-4 py-2 rounded-lg border border-border text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
+                >
+                  Send Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
