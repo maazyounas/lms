@@ -15,6 +15,7 @@ const FeeManagement = ({
   transactions = [],
   onStudentsChange,
   onRecordTransaction,
+  onTransactionsChange,
   onAuditLog,
   currentAdmin = "Admin User",
   showPendingOnly = false,
@@ -140,6 +141,74 @@ const FeeManagement = ({
     toast.success(`Payment recorded: Rs. ${applied.toLocaleString()}`);
   };
 
+  const isCurrentMonth = (dateString: string) => {
+    const date = new Date(dateString);
+    if (!Number.isFinite(date.getTime())) return false;
+    const now = new Date();
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  };
+
+  const updateTransaction = (
+    txId: string,
+    updates: { amount: number; method: PaymentMethod; collector: string; remarks: string }
+  ) => {
+    const existing = transactions.find((tx) => tx.id === txId);
+    if (!existing) return;
+    if (!isCurrentMonth(existing.transactionDate)) {
+      toast.error("Only current month transactions can be edited.");
+      return;
+    }
+
+    const target = students.find((s) => s.id === existing.studentId);
+    if (!target) {
+      toast.error("Student not found for this transaction.");
+      return;
+    }
+
+    const delta = updates.amount - existing.amount;
+    const nextPaid = target.fees.paid + delta;
+    const nextPending = target.fees.pending - delta;
+    if (nextPaid < 0 || nextPending < 0 || nextPaid > target.fees.total) {
+      toast.error("Updated amount is out of allowed range.");
+      return;
+    }
+
+    const nextStudents = students.map((s) => {
+      if (s.id !== target.id) return s;
+      const status = nextPending === 0 ? "Paid" : nextPaid > 0 ? "Partial" : "Pending";
+      return {
+        ...s,
+        fees: {
+          ...s.fees,
+          paid: nextPaid,
+          pending: nextPending,
+          status,
+        },
+      };
+    });
+    onStudentsChange(nextStudents);
+
+    const nextTransactions = transactions.map((tx) =>
+      tx.id === txId
+        ? {
+            ...tx,
+            amount: updates.amount,
+            method: updates.method,
+            collector: updates.collector,
+            remarks: updates.remarks,
+          }
+        : tx
+    );
+    onTransactionsChange?.(nextTransactions);
+    onAuditLog?.({
+      actor: currentAdmin,
+      module: "Fee",
+      action: "Edited Fee Transaction",
+      details: `${existing.studentName} transaction edited. Amount: Rs. ${existing.amount.toLocaleString()} -> Rs. ${updates.amount.toLocaleString()}.`,
+    });
+    toast.success("Transaction updated.");
+  };
+
   const markAsPaid = (studentId: number) => {
     const target = students.find((s) => s.id === studentId);
     if (!target || target.fees.pending <= 0) return;
@@ -206,6 +275,82 @@ const FeeManagement = ({
       {selectedStudent && (
         <>
           <StudentOverviewCard student={selectedStudent} />
+
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Fee Form</h3>
+                <p className="text-sm text-muted-foreground">
+                  Collect fee for {selectedStudent.name} ({studentCode(selectedStudent.id)})
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Pending: Rs. {selectedStudent.fees.pending.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Amount</label>
+                <input
+                  value={paymentMap[selectedStudent.id] || ""}
+                  onChange={(e) => onPaymentChange(selectedStudent.id, e.target.value)}
+                  placeholder="Amount"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Method</label>
+                <select
+                  value={methodMap[selectedStudent.id] || "Cash"}
+                  onChange={(e) =>
+                    onMethodChange(selectedStudent.id, e.target.value as PaymentMethod)
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Card">Card</option>
+                  <option value="Bank Transfer">Bank</option>
+                  <option value="Online">Online</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Collector</label>
+                <input
+                  value={collectorMap[selectedStudent.id] ?? currentAdmin}
+                  onChange={(e) => onCollectorChange(selectedStudent.id, e.target.value)}
+                  placeholder="Collector"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Remarks</label>
+                <input
+                  value={remarksMap[selectedStudent.id] || ""}
+                  onChange={(e) => onRemarksChange(selectedStudent.id, e.target.value)}
+                  placeholder="Remarks"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-end">
+              <button
+                onClick={() => onApplyPayment(selectedStudent.id)}
+                className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+                disabled={selectedStudent.fees.pending <= 0}
+              >
+                Submit Fee
+              </button>
+              <button
+                onClick={() => onMarkPaid(selectedStudent.id)}
+                className="rounded-lg border border-border px-4 py-2 text-sm disabled:opacity-50"
+                disabled={selectedStudent.fees.pending <= 0}
+              >
+                Mark Paid
+              </button>
+            </div>
+          </div>
 
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -288,6 +433,7 @@ const FeeManagement = ({
         collectorMap={collectorMap}
         remarksMap={remarksMap}
         currentAdmin={currentAdmin}
+        showInlineControls={false}
         onSelectStudent={setSelectedStudentId}
         onPaymentChange={(studentId, value) =>
           setPaymentMap((prev) => ({ ...prev, [studentId]: value }))
@@ -309,6 +455,8 @@ const FeeManagement = ({
         transactions={filteredTransactions}
         students={students}
         onViewReceipt={viewReceipt}
+        canEditTransaction={isCurrentMonth}
+        onEditTransaction={updateTransaction}
       />
     </div>
   );

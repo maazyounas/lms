@@ -1,9 +1,14 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import type { Course, Student } from "@/data/mockData";
+import type { AdminTeacherRecord } from "@/components/admin/teacher/types";
 
 interface Props {
   classes: string[];
   classSubjects: Record<string, string[]>;
+  teachers: AdminTeacherRecord[];
+  students: Student[];
+  courses: Course[];
   onAddClass: (value: string) => void;
   onDeleteClass: (value: string) => void;
   onAddSubject: (className: string, value: string) => void;
@@ -13,6 +18,9 @@ interface Props {
 const AdminCreateClass = ({
   classes,
   classSubjects,
+  teachers,
+  students,
+  courses,
   onAddClass,
   onDeleteClass,
   onAddSubject,
@@ -31,6 +39,47 @@ const AdminCreateClass = ({
     const subjects = classSubjects[selectedClass] ?? [];
     return subjects.map((item) => item.trim()).filter(Boolean);
   }, [classSubjects, selectedClass]);
+
+  const classDetails = useMemo(() => {
+    if (!selectedClass) return null;
+    const classCourses = classSubjects[selectedClass] ?? [];
+    const studentsInClass = students.filter((s) => s.grade === selectedClass);
+    const teachersForClass = teachers.filter((t) => t.classes.includes(selectedClass));
+    const courseRows = classCourses.map((courseName) => {
+      const assignedTeachers = teachersForClass.filter((t) => {
+        const subjects = t.classSubjects?.[selectedClass];
+        if (subjects && subjects.length > 0) {
+          return subjects.includes(courseName);
+        }
+        return t.subject
+          .split(",")
+          .map((s) => s.trim())
+          .includes(courseName);
+      });
+      const courseMeta = courses.find((c) => c.name === courseName);
+      return {
+        courseName,
+        teachers: assignedTeachers.map((t) => t.name),
+        progress: courseMeta?.progress ?? 0,
+        schedule: courseMeta?.schedule ?? "Not set",
+      };
+    });
+
+    const avgProgress =
+      courseRows.length > 0
+        ? Math.round(
+            courseRows.reduce((sum, row) => sum + row.progress, 0) / courseRows.length
+          )
+        : 0;
+
+    return {
+      classCourses,
+      studentsInClass,
+      teachersForClass,
+      courseRows,
+      avgProgress,
+    };
+  }, [classSubjects, selectedClass, students, teachers, courses]);
 
   const handleAddClass = () => {
     const value = newClassName.trim();
@@ -96,7 +145,7 @@ const AdminCreateClass = ({
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <p className="font-semibold text-foreground">Add New Subject</p>
+          <p className="font-semibold text-foreground">Add New Course</p>
           <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
@@ -122,7 +171,7 @@ const AdminCreateClass = ({
               disabled={!selectedClass}
               className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
             >
-              Add Subject
+              Add Course
             </button>
           </div>
           {!selectedClass && (
@@ -150,7 +199,13 @@ const AdminCreateClass = ({
                   key={`class-${item}`}
                   className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs"
                 >
-                  <span>{item}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedClass(item)}
+                    className="text-left hover:text-primary"
+                  >
+                    {item}
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -172,16 +227,16 @@ const AdminCreateClass = ({
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-foreground">
-              {selectedClass ? `Subjects for ${selectedClass}` : "Subjects"}
+              {selectedClass ? `Courses for ${selectedClass}` : "Courses"}
             </p>
             <span className="text-xs text-muted-foreground">
               {normalizedSubjects.length} total
             </span>
           </div>
           {!selectedClass ? (
-            <p className="text-sm text-muted-foreground">Select a class to view subjects.</p>
+            <p className="text-sm text-muted-foreground">Select a class to view courses.</p>
           ) : normalizedSubjects.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No subjects created yet.</p>
+            <p className="text-sm text-muted-foreground">No courses created yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {normalizedSubjects.map((item) => (
@@ -203,6 +258,78 @@ const AdminCreateClass = ({
           )}
         </div>
       </div>
+
+      {classDetails && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">
+                {selectedClass} Overview
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {classDetails.classCourses.length} courses ·{" "}
+                {classDetails.studentsInClass.length} students ·{" "}
+                {classDetails.teachersForClass.length} teachers
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Avg syllabus progress:{" "}
+              <span className="font-semibold text-foreground">
+                {classDetails.avgProgress}%
+              </span>
+            </div>
+          </div>
+
+          {classDetails.courseRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No course details available.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px]">
+                <thead className="bg-muted/30">
+                  <tr>
+                    {["Course", "Assigned Teacher(s)", "Schedule", "Progress"].map((head) => (
+                      <th
+                        key={head}
+                        className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        {head}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {classDetails.courseRows.map((row) => (
+                    <tr key={row.courseName} className="border-b border-border last:border-0">
+                      <td className="px-3 py-2 text-sm font-medium text-foreground">
+                        {row.courseName}
+                      </td>
+                      <td className="px-3 py-2 text-sm">
+                        {row.teachers.length > 0 ? row.teachers.join(", ") : "Not assigned"}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-muted-foreground">
+                        {row.schedule}
+                      </td>
+                      <td className="px-3 py-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-24 rounded-full bg-muted/30 overflow-hidden">
+                            <div
+                              className="h-full bg-primary"
+                              style={{ width: `${row.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {row.progress}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

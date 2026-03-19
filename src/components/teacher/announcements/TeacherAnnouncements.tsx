@@ -17,6 +17,9 @@ type Props = {
   students: Student[];
   receivedAnnouncements: Announcement[];
   allStudentsLabel?: string;
+  onAnnouncementCreated?: (announcement: Announcement) => void;
+  hideReceived?: boolean;
+  lockTargetAll?: boolean;
 };
 
 const TeacherAnnouncements = ({
@@ -25,6 +28,9 @@ const TeacherAnnouncements = ({
   students,
   receivedAnnouncements,
   allStudentsLabel = "All Students (in my classes)",
+  onAnnouncementCreated,
+  hideReceived = false,
+  lockTargetAll = false,
 }: Props) => {
   const [sentAnnouncements, setSentAnnouncements] = useState<SentAnnouncement[]>([]);
   const [announceForm, setAnnounceForm] = useState({
@@ -48,7 +54,7 @@ const TeacherAnnouncements = ({
     }
 
     let targetLabel = "";
-    if (announceForm.targetType === "all") {
+    if (lockTargetAll || announceForm.targetType === "all") {
       targetLabel =
         classes.length > 0
           ? `All students in ${classes.join(", ")}`
@@ -81,6 +87,14 @@ const TeacherAnnouncements = ({
     };
 
     setSentAnnouncements((prev) => [newAnnouncement, ...prev]);
+    onAnnouncementCreated?.({
+      id: Date.now(),
+      title: announceForm.title,
+      date: newAnnouncement.date,
+      priority: "medium",
+      content: announceForm.content,
+      author: senderName,
+    });
     toast.success(`Announcement sent to ${targetLabel}`);
 
     setAnnounceForm({
@@ -126,30 +140,32 @@ const TeacherAnnouncements = ({
                 placeholder="Write your announcement..."
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Target Audience
-              </label>
-              <select
-                value={announceForm.targetType}
-                onChange={(e) =>
-                  setAnnounceForm({
-                    ...announceForm,
-                    targetType: e.target.value as "all" | "classes" | "students",
-                    selectedClasses: [],
-                    selectedStudents: [],
-                    studentClassFilter: "all",
-                  })
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="all">{allStudentsLabel}</option>
-                <option value="classes">Specific Classes</option>
-                <option value="students">Specific Students</option>
-              </select>
-            </div>
+            {!lockTargetAll && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Target Audience
+                </label>
+                <select
+                  value={announceForm.targetType}
+                  onChange={(e) =>
+                    setAnnounceForm({
+                      ...announceForm,
+                      targetType: e.target.value as "all" | "classes" | "students",
+                      selectedClasses: [],
+                      selectedStudents: [],
+                      studentClassFilter: "all",
+                    })
+                  }
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="all">{allStudentsLabel}</option>
+                  <option value="classes">Specific Classes</option>
+                  <option value="students">Specific Students</option>
+                </select>
+              </div>
+            )}
 
-            {announceForm.targetType === "classes" && (
+            {!lockTargetAll && announceForm.targetType === "classes" && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Select Classes
@@ -185,7 +201,7 @@ const TeacherAnnouncements = ({
               </div>
             )}
 
-            {announceForm.targetType === "students" && (
+            {!lockTargetAll && announceForm.targetType === "students" && (
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
@@ -285,11 +301,12 @@ const TeacherAnnouncements = ({
             )}
           </div>
 
-          <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Received Announcements
-            </h3>
-            <div className="space-y-3">
+          {!hideReceived && (
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                Received Announcements
+              </h3>
+              <div className="space-y-3">
               {receivedAnnouncements.map((a) => (
                 <div
                   key={a.id}
@@ -322,8 +339,10 @@ const TeacherAnnouncements = ({
                   No announcements received yet.
                 </p>
               )}
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -331,3 +350,4 @@ const TeacherAnnouncements = ({
 };
 
 export default TeacherAnnouncements;
+

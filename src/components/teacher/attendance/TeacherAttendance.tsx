@@ -27,6 +27,14 @@ const TeacherAttendance = ({ students, teacherName, teacherClasses }: Props) => 
   const [selectedClass, setSelectedClass] = useState(
     teacherClasses[0] || "All Classes"
   );
+  const [attendanceDate, setAttendanceDate] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [attendanceTime, setAttendanceTime] = useState("");
+  const [classType, setClassType] = useState<"Regular" | "Online" | "Extra Class">(
+    "Regular"
+  );
+  const [roomOrMode, setRoomOrMode] = useState("");
   const [attendanceMap, setAttendanceMap] = useState<Record<number, AttendanceStatus>>(
     {}
   );
@@ -69,6 +77,18 @@ const TeacherAttendance = ({ students, teacherName, teacherClasses }: Props) => 
       toast.error("No students in this class.");
       return;
     }
+    if (!selectedClass || selectedClass === "All Classes") {
+      toast.error("Select a class before submitting.");
+      return;
+    }
+    if (!attendanceDate) {
+      toast.error("Select an attendance date.");
+      return;
+    }
+    if (!attendanceTime) {
+      toast.error("Select an attendance time.");
+      return;
+    }
     const missing = filteredStudents.filter((s) => !attendanceMap[s.id]);
     if (missing.length > 0) {
       toast.error("Mark attendance for all students before submitting.");
@@ -84,7 +104,10 @@ const TeacherAttendance = ({ students, teacherName, teacherClasses }: Props) => 
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       className: selectedClass,
       teacherName,
-      date: new Date().toISOString().slice(0, 10),
+      date: attendanceDate,
+      time: attendanceTime,
+      classType,
+      roomOrMode: roomOrMode.trim() || undefined,
       entries,
     };
 
@@ -117,6 +140,45 @@ const TeacherAttendance = ({ students, teacherName, teacherClasses }: Props) => 
             </option>
           ))}
         </select>
+
+        <input
+          type="date"
+          value={attendanceDate}
+          onChange={(e) => setAttendanceDate(e.target.value)}
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+        />
+
+        <input
+          type="time"
+          value={attendanceTime}
+          onChange={(e) => setAttendanceTime(e.target.value)}
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+        />
+
+        <select
+          value={classType}
+          onChange={(e) =>
+            setClassType(e.target.value as "Regular" | "Online" | "Extra Class")
+          }
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+        >
+          <option value="Regular">Regular Class</option>
+          <option value="Online">Online</option>
+          <option value="Extra Class">Extra Class</option>
+        </select>
+
+        <input
+          value={roomOrMode}
+          onChange={(e) => setRoomOrMode(e.target.value)}
+          placeholder={
+            classType === "Online"
+              ? "Online / Zoom link"
+              : classType === "Extra Class"
+              ? "Extra class details"
+              : "Room number"
+          }
+          className="min-w-[180px] rounded-lg border border-border bg-card px-3 py-2 text-sm"
+        />
 
         <div className="flex flex-wrap gap-2">
           {(["Present", "Absent", "Late", "Leave"] as AttendanceStatus[]).map((status) => (

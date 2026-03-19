@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BookOpen,
   Users,
-  TrendingUp,
   ClipboardList,
   ArrowRight,
   Search,
@@ -75,17 +74,27 @@ const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
     0
   );
 
-  const avgScore =
-    STUDENTS.length > 0
-      ? (
-          STUDENTS.reduce((a, s) => {
-            const t = s.tests.find(
-              (t) => t.subject === teacher.subject && t.test === "Mid-Term"
-            );
-            return a + (t ? (t.marks / t.total) * 100 : 0);
-          }, 0) / STUDENTS.length
-        ).toFixed(0)
-      : "0";
+  const pendingQuizChecks = useMemo(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const rawQuizzes = localStorage.getItem("teacher-quizzes");
+      const quizzes = rawQuizzes
+        ? (JSON.parse(rawQuizzes) as { id: string; teacherId?: number }[])
+        : [];
+      const quizIds = new Set(
+        quizzes.filter((q) => q.teacherId === teacher.id).map((q) => q.id)
+      );
+      const rawSubs = localStorage.getItem("quiz-submissions");
+      const submissions = rawSubs
+        ? (JSON.parse(rawSubs) as { quizId: string; checked: boolean }[])
+        : [];
+      return submissions.filter(
+        (s) => quizIds.has(s.quizId) && !s.checked
+      ).length;
+    } catch {
+      return 0;
+    }
+  }, [teacher.id]);
 
   const filteredStudents = STUDENTS.filter((s) => {
     const query = search.toLowerCase();
@@ -122,10 +131,11 @@ const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
           onClick={() => onNavigate("courses")}
         />
         <StatCard
-          label="Avg Class Score"
-          value={`${avgScore}%`}
-          icon={TrendingUp}
-          color="text-accent bg-accent/10"
+          label="Pending Quizzes"
+          value={pendingQuizChecks}
+          icon={ClipboardList}
+          color="text-info bg-info/10"
+          onClick={() => onNavigate("checkQuizzes")}
         />
         <StatCard
           label="Pending Grading"

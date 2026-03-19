@@ -6,29 +6,42 @@ interface Props {
   onAnnouncementsChange?: (announcements: Announcement[]) => void;
 }
 
-const AdminAnnouncements = (_props: Props) => {
-  const [inboxAnnouncements, setInboxAnnouncements] = useState<Announcement[]>([]);
+const AdminAnnouncements = ({ onAnnouncementsChange }: Props) => {
+  const [sharedAnnouncements, setSharedAnnouncements] = useState<Announcement[]>(() => {
+    const raw = localStorage.getItem("announcements");
+    if (!raw) return ANNOUNCEMENTS;
+    try {
+      const parsed = JSON.parse(raw) as Announcement[];
+      return Array.isArray(parsed) ? parsed : ANNOUNCEMENTS;
+    } catch {
+      return ANNOUNCEMENTS;
+    }
+  });
   const classes = useMemo(
     () => Array.from(new Set(STUDENTS.map((student) => student.grade))).sort(),
     []
   );
-  const receivedAnnouncements = useMemo(
-    () => [...inboxAnnouncements, ...ANNOUNCEMENTS],
-    [inboxAnnouncements]
-  );
+  const receivedAnnouncements = useMemo(() => sharedAnnouncements, [sharedAnnouncements]);
 
   useEffect(() => {
-    const key = "admin-announcements";
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as Announcement[];
-      if (Array.isArray(parsed)) {
-        setInboxAnnouncements(parsed);
+    localStorage.setItem("announcements", JSON.stringify(sharedAnnouncements));
+    onAnnouncementsChange?.(sharedAnnouncements);
+  }, [sharedAnnouncements, onAnnouncementsChange]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== "announcements") return;
+      const raw = localStorage.getItem("announcements");
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw) as Announcement[];
+        if (Array.isArray(parsed)) setSharedAnnouncements(parsed);
+      } catch {
+        return;
       }
-    } catch {
-      setInboxAnnouncements([]);
-    }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   return (
@@ -38,6 +51,11 @@ const AdminAnnouncements = (_props: Props) => {
       students={STUDENTS}
       receivedAnnouncements={receivedAnnouncements}
       allStudentsLabel="All Students"
+      hideReceived
+      lockTargetAll
+      onAnnouncementCreated={(announcement) => {
+        setSharedAnnouncements((prev) => [announcement, ...prev]);
+      }}
     />
   );
 };

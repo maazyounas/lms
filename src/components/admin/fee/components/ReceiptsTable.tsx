@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Printer, X } from "lucide-react";
-import type { FeeTransaction } from "@/components/admin/types";
+import type { FeeTransaction, PaymentMethod } from "@/components/admin/types";
 import type { Student } from "@/data/mockData";
 
 type Props = {
   transactions: FeeTransaction[];
   students: Student[]; // to fetch student details
   onViewReceipt?: (tx: FeeTransaction) => void; // optional callback
+  canEditTransaction?: (tx: FeeTransaction) => boolean;
+  onEditTransaction?: (
+    txId: string,
+    updates: { amount: number; method: PaymentMethod; collector: string; remarks: string }
+  ) => void;
 };
 
 // Helper to format date
@@ -18,13 +23,28 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const ReceiptsTable = ({ transactions, students }: Props) => {
+const ReceiptsTable = ({
+  transactions,
+  students,
+  canEditTransaction,
+  onEditTransaction,
+}: Props) => {
   const [selectedTx, setSelectedTx] = useState<FeeTransaction | null>(null);
+  const [editingTx, setEditingTx] = useState<FeeTransaction | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editMethod, setEditMethod] = useState<PaymentMethod>("Cash");
+  const [editCollector, setEditCollector] = useState("");
+  const [editRemarks, setEditRemarks] = useState("");
 
   // Find student details for the selected transaction
   const studentDetails = selectedTx
     ? students.find((s) => s.id === selectedTx.studentId)
     : null;
+
+  const editingStudent = useMemo(
+    () => (editingTx ? students.find((s) => s.id === editingTx.studentId) : null),
+    [editingTx, students]
+  );
 
   // Generate a mock fee breakdown (in real app, this would come from the transaction or fee structure)
   const getFeeBreakdown = (amount: number) => {
@@ -134,13 +154,29 @@ const ReceiptsTable = ({ transactions, students }: Props) => {
                 </td>
                 <td className="px-4 py-2 text-sm">{tx.method}</td>
                 <td className="px-4 py-2">
-                  <button
-                    onClick={() => setSelectedTx(tx)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-muted transition-colors"
-                  >
-                    <Printer className="h-3.5 w-3.5" />
-                    View Receipt
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedTx(tx)}
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-muted transition-colors"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      View Receipt
+                    </button>
+                    {canEditTransaction?.(tx) && (
+                      <button
+                        onClick={() => {
+                          setEditingTx(tx);
+                          setEditAmount(String(tx.amount));
+                          setEditMethod(tx.method);
+                          setEditCollector(tx.collector);
+                          setEditRemarks(tx.remarks || "");
+                        }}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs hover:border-primary/60 hover:text-primary"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -299,6 +335,92 @@ const ReceiptsTable = ({ transactions, students }: Props) => {
               >
                 <Printer className="h-4 w-4" />
                 Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingTx && editingStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-xl shadow-xl max-w-xl w-full">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Edit Fee Transaction</h3>
+              <button
+                onClick={() => setEditingTx(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="text-sm text-muted-foreground">
+                {editingStudent.name} · {editingStudent.grade} · {editingTx.receiptNo}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground">Amount</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Method</label>
+                  <select
+                    value={editMethod}
+                    onChange={(e) => setEditMethod(e.target.value as PaymentMethod)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="Bank Transfer">Bank</option>
+                    <option value="Online">Online</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Collector</label>
+                  <input
+                    value={editCollector}
+                    onChange={(e) => setEditCollector(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Remarks</label>
+                  <input
+                    value={editRemarks}
+                    onChange={(e) => setEditRemarks(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
+              <button
+                onClick={() => setEditingTx(null)}
+                className="rounded-lg border border-border px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const amount = Number(editAmount);
+                  if (!Number.isFinite(amount) || amount < 0) return;
+                  onEditTransaction?.(editingTx.id, {
+                    amount,
+                    method: editMethod,
+                    collector: editCollector,
+                    remarks: editRemarks,
+                  });
+                  setEditingTx(null);
+                }}
+                className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+              >
+                Save Changes
               </button>
             </div>
           </div>

@@ -8,7 +8,50 @@ import type {
   AttendanceRecord,
   AttendanceStatus,
 } from "./types/attendance";
-import { buildAttendanceLog } from "./utils/buildAttendanceLog";
+
+type TeacherAttendancePayload = {
+  id: string;
+  className: string;
+  teacherName: string;
+  date: string;
+  time: string;
+  classType?: string;
+  roomOrMode?: string;
+  entries: { studentId: number; status: AttendanceStatus }[];
+};
+
+const buildLogsFromSubmissions = (
+  students: AdminAttendanceProps["students"] = [],
+  submissions: TeacherAttendancePayload[]
+) => {
+  const logs: Record<number, AttendanceRecord[]> = {};
+  students.forEach((student) => {
+    logs[student.id] = [];
+  });
+
+  submissions.forEach((payload) => {
+    const day = new Date(payload.date).toLocaleDateString("en-US", {
+      weekday: "short",
+    });
+    payload.entries.forEach((entry) => {
+      if (!logs[entry.studentId]) return;
+      logs[entry.studentId].push({
+        id: `${payload.id}::${entry.studentId}`,
+        date: payload.date,
+        day,
+        time: payload.time,
+        className: payload.className,
+        status: entry.status,
+      });
+    });
+  });
+
+  Object.values(logs).forEach((records) => {
+    records.sort((a, b) => b.date.localeCompare(a.date));
+  });
+
+  return logs;
+};
 
 const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,21 +61,38 @@ const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
     null
   );
   const [activeSubjectFilter, setActiveSubjectFilter] = useState<string>("All Subjects");
-  const [attendanceLogs, setAttendanceLogs] = useState<
-    Record<number, AttendanceRecord[]>
-  >(() => {
-    const initial: Record<number, AttendanceRecord[]> = {};
-    students.forEach((student) => {
-      initial[student.id] = buildAttendanceLog(student);
-    });
-    return initial;
-  });
+  const [teacherSubmissions, setTeacherSubmissions] = useState<
+    TeacherAttendancePayload[]
+  >([]);
+
+  const attendanceLogs = useMemo(
+    () => buildLogsFromSubmissions(students, teacherSubmissions),
+    [students, teacherSubmissions]
+  );
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const classOptions = useMemo(() => {
     const set = new Set(students.map((student) => student.grade));
+    teacherSubmissions.forEach((entry) => set.add(entry.className));
     return ["All Classes", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-  }, [students]);
+  }, [students, teacherSubmissions]);
+
+  const classSummary = useMemo(() => {
+    const map = new Map<string, { submissions: number; entries: number; lastDate?: string }>();
+    teacherSubmissions.forEach((payload) => {
+      const current = map.get(payload.className) || { submissions: 0, entries: 0 };
+      current.submissions += 1;
+      current.entries += payload.entries.length;
+      if (!current.lastDate || payload.date > current.lastDate) {
+        current.lastDate = payload.date;
+      }
+      map.set(payload.className, current);
+    });
+    return Array.from(map.entries()).map(([className, info]) => ({
+      className,
+      ...info,
+    }));
+  }, [teacherSubmissions]);
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
@@ -46,16 +106,29 @@ const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
   }, [normalizedQuery, selectedClass, students]);
 
   useEffect(() => {
-    setAttendanceLogs((prev) => {
-      const next = { ...prev };
-      students.forEach((student) => {
-        if (!next[student.id]) {
-          next[student.id] = buildAttendanceLog(student);
-        }
-      });
-      return next;
-    });
-  }, [students]);
+    const readSubmissions = () => {
+      const raw = localStorage.getItem("teacher-attendance");
+      if (!raw) {
+        setTeacherSubmissions([]);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw) as TeacherAttendancePayload[];
+        setTeacherSubmissions(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setTeacherSubmissions([]);
+      }
+    };
+
+    readSubmissions();
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "teacher-attendance") {
+        readSubmissions();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   useEffect(() => {
     if (selectedStudentId && !students.some((student) => student.id === selectedStudentId)) {
@@ -98,17 +171,63 @@ const AdminAttendance = ({ students = STUDENTS }: AdminAttendanceProps) => {
 
   const updateRecordStatus = (recordId: string, status: AttendanceStatus) => {
     if (!selectedStudent) return;
-    setAttendanceLogs((prev) => {
-      const current = prev[selectedStudent.id] ?? [];
-      const next = current.map((record) =>
-        record.id === recordId ? { ...record, status } : record
-      );
-      return { ...prev, [selectedStudent.id]: next };
-    });
+    const [payloadId, studentIdRaw] = recordId.split("::");
+    if (!payloadId || !studentIdRaw) return;
+    const studentId = Number(studentIdRaw);
+    if (!Number.isFinite(studentId)) return;
+
+    const raw = localStorage.getItem("teacher-attendance");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as TeacherAttendancePayload[];
+      const updated = parsed.map((payload) => {
+        if (payload.id !== payloadId) return payload;
+        return {
+          ...payload,
+          entries: payload.entries.map((entry) =>
+            entry.studentId === studentId ? { ...entry, status } : entry
+          ),
+        };
+      });
+      localStorage.setItem("teacher-attendance", JSON.stringify(updated));
+      setTeacherSubmissions(updated);
+    } catch {
+      return;
+    }
   };
 
   return (
     <div>
+      {teacherSubmissions.length === 0 && (
+        <div className="mb-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          No attendance submissions yet. Ask teachers to submit attendance to see
+          records here.
+        </div>
+      )}
+
+      {classSummary.length > 0 && (
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {classSummary.map((entry) => (
+            <button
+              key={entry.className}
+              type="button"
+              onClick={() => setSelectedClass(entry.className)}
+              className="rounded-xl border border-border bg-card p-4 text-left hover:border-primary/40"
+            >
+              <p className="text-xs text-muted-foreground">Class</p>
+              <p className="text-lg font-semibold text-foreground">{entry.className}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Submissions: {entry.submissions} · Students: {entry.entries}
+              </p>
+              {entry.lastDate && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Last submitted: {entry.lastDate}
+                </p>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       <AttendanceFilters
         selectedClass={selectedClass}

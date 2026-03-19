@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, FileText, UserCheck, ClipboardList, Calendar,
   User, CalendarOff, Megaphone, BookOpen, ClipboardCheck
@@ -29,11 +29,56 @@ const navItems = [
   { id: "leave", label: "Apply for Leave", icon: CalendarOff },
 ];
 
-const currentStudent = STUDENTS[0];
-
 const StudentPortal = () => {
   const [activeNav, setActiveNav] = useState("dashboard");
-  const student = currentStudent;
+  const [students, setStudents] = useState(() => {
+    const raw = localStorage.getItem("students");
+    if (!raw) return STUDENTS;
+    try {
+      const parsed = JSON.parse(raw) as typeof STUDENTS;
+      return Array.isArray(parsed) ? parsed : STUDENTS;
+    } catch {
+      return STUDENTS;
+    }
+  });
+  const [announcements, setAnnouncements] = useState(() => {
+    const raw = localStorage.getItem("announcements");
+    if (!raw) return ANNOUNCEMENTS;
+    try {
+      const parsed = JSON.parse(raw) as typeof ANNOUNCEMENTS;
+      return Array.isArray(parsed) ? parsed : ANNOUNCEMENTS;
+    } catch {
+      return ANNOUNCEMENTS;
+    }
+  });
+  const student = students[0] ?? STUDENTS[0];
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "students") {
+        const raw = localStorage.getItem("students");
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw) as typeof STUDENTS;
+          if (Array.isArray(parsed)) setStudents(parsed);
+        } catch {
+          return;
+        }
+      }
+      if (event.key === "announcements") {
+        const raw = localStorage.getItem("announcements");
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw) as typeof ANNOUNCEMENTS;
+          if (Array.isArray(parsed)) setAnnouncements(parsed);
+        } catch {
+          return;
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   // Custom notification slot with profile icon
   const notificationSlot = (
@@ -74,7 +119,7 @@ const StudentPortal = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-6">Announcements</h1>
             <div className="space-y-3">
-              {ANNOUNCEMENTS.map((a) => (
+              {announcements.map((a) => (
                 <div key={a.id} className="bg-card border border-border rounded-xl p-5">
                   <div className="flex items-start gap-3">
                     <div className={`h-2 w-2 rounded-full mt-2 shrink-0 ${a.priority === "high" ? "bg-destructive" : a.priority === "medium" ? "bg-warning" : "bg-muted-foreground"}`} />

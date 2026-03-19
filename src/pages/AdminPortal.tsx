@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard,
   UserCog,
@@ -17,6 +17,7 @@ import {
   ANNOUNCEMENTS,
   STUDENTS,
   TEACHERS,
+  COURSES,
   type Announcement,
   type Student,
 } from "@/data/mockData";
@@ -27,8 +28,7 @@ import AdminAnnouncements from "@/components/admin/announcements/AdminAnnounceme
 import AdminReports from "@/components/admin/reports/AdminReports";
 import AdminStudent from "@/components/admin/student/AdminStudent";
 import FeeManagement from "@/components/admin/fee/FeeManagement";
-import AdminTeacher, {
-} from "@/components/admin/teacher/AdminTeacher";
+import AdminTeacher from "@/components/admin/teacher/AdminTeacher";
 import type { AdminTeacherRecord } from "@/components/admin/teacher/types";
 import AdminParentCommunication from "@/components/admin/communication/AdminParentCommunication";
 import AdminTimetablePlanner from "@/components/admin/planner/AdminTimetablePlanner";
@@ -37,7 +37,6 @@ import type {
   AuditLogEntry,
   FeeTransaction,
   PlannerAllocation,
-  SmartAlert,
 } from "@/components/admin/types";
 
 const DEFAULT_SUBJECTS = [
@@ -77,17 +76,97 @@ const AdminPortal = () => {
     "enroll"
   );
   const [pendingLeaves, setPendingLeaves] = useState(3);
-  const [announcements, setAnnouncements] = useState<Announcement[]>(ANNOUNCEMENTS);
-  const [students, setStudents] = useState<Student[]>(STUDENTS);
-  const [teachers, setTeachers] = useState<AdminTeacherRecord[]>(
-    TEACHERS as AdminTeacherRecord[]
-  );
-  const [feeTransactions, setFeeTransactions] = useState<FeeTransaction[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
-  const [plannerAllocations, setPlannerAllocations] = useState<PlannerAllocation[]>([]);
-  const [customClasses, setCustomClasses] = useState<string[]>([]);
-  const [classSubjects, setClassSubjects] = useState<Record<string, string[]>>({});
+  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
+    const raw = localStorage.getItem("announcements");
+    if (!raw) return ANNOUNCEMENTS;
+    try {
+      const parsed = JSON.parse(raw) as Announcement[];
+      return Array.isArray(parsed) ? parsed : ANNOUNCEMENTS;
+    } catch {
+      return ANNOUNCEMENTS;
+    }
+  });
+  const [students, setStudents] = useState<Student[]>(() => {
+    const raw = localStorage.getItem("students");
+    if (!raw) return STUDENTS;
+    try {
+      const parsed = JSON.parse(raw) as Student[];
+      return Array.isArray(parsed) ? parsed : STUDENTS;
+    } catch {
+      return STUDENTS;
+    }
+  });
+  const [teachers, setTeachers] = useState<AdminTeacherRecord[]>(() => {
+    const raw = localStorage.getItem("teachers");
+    if (!raw) return TEACHERS as AdminTeacherRecord[];
+    try {
+      const parsed = JSON.parse(raw) as AdminTeacherRecord[];
+      return Array.isArray(parsed) ? parsed : (TEACHERS as AdminTeacherRecord[]);
+    } catch {
+      return TEACHERS as AdminTeacherRecord[];
+    }
+  });
+  const [feeTransactions, setFeeTransactions] = useState<FeeTransaction[]>(() => {
+    const raw = localStorage.getItem("fee-transactions");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as FeeTransaction[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
+    const raw = localStorage.getItem("audit-logs");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as AuditLogEntry[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [plannerAllocations, setPlannerAllocations] = useState<PlannerAllocation[]>(() => {
+    const raw = localStorage.getItem("planner-allocations");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as PlannerAllocation[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [customClasses, setCustomClasses] = useState<string[]>(() => {
+    const raw = localStorage.getItem("custom-classes");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [classSubjects, setClassSubjects] = useState<Record<string, string[]>>(() => {
+    const raw = localStorage.getItem("class-subjects");
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw) as Record<string, string[]>;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
   const currentAdmin = "Admin User";
+  const stateRef = useRef({
+    announcements,
+    students,
+    teachers,
+    feeTransactions,
+    auditLogs,
+    plannerAllocations,
+    customClasses,
+    classSubjects,
+  });
 
   const addAuditLog = (entry: Omit<AuditLogEntry, "id" | "createdAt">) => {
     const nextEntry: AuditLogEntry = {
@@ -98,78 +177,225 @@ const AdminPortal = () => {
     setAuditLogs((prev) => [nextEntry, ...prev]);
   };
 
-  const smartAlerts = useMemo<SmartAlert[]>(() => {
-    // ... (unchanged)
-    const today = new Date();
-    const dayMs = 24 * 60 * 60 * 1000;
-    const alerts: SmartAlert[] = [];
+  useEffect(() => {
+    localStorage.setItem("announcements", JSON.stringify(announcements));
+  }, [announcements]);
 
-    students.forEach((student) => {
-      if (student.fees.pending > 0) {
-        alerts.push({
-          id: `fee-${student.id}`,
-          type: "fee",
-          severity: student.fees.pending > 20000 ? "high" : "medium",
-          title: `Pending Fee: ${student.name}`,
-          message: `${student.grade} has pending dues of Rs. ${student.fees.pending.toLocaleString()}.`,
-          createdAt: new Date().toISOString(),
-        });
-      }
+  useEffect(() => {
+    localStorage.setItem("students", JSON.stringify(students));
+  }, [students]);
 
-      if (student.attendance.total > 0) {
-        const pct = (student.attendance.present / student.attendance.total) * 100;
-        if (pct < 75) {
-          alerts.push({
-            id: `att-${student.id}`,
-            type: "attendance",
-            severity: pct < 60 ? "high" : "medium",
-            title: `Low Attendance: ${student.name}`,
-            message: `Attendance is ${pct.toFixed(0)}% (threshold 75%).`,
-            createdAt: new Date().toISOString(),
-          });
+  useEffect(() => {
+    localStorage.setItem("teachers", JSON.stringify(teachers));
+  }, [teachers]);
+
+  useEffect(() => {
+    localStorage.setItem("fee-transactions", JSON.stringify(feeTransactions));
+  }, [feeTransactions]);
+
+  useEffect(() => {
+    localStorage.setItem("audit-logs", JSON.stringify(auditLogs));
+  }, [auditLogs]);
+
+  useEffect(() => {
+    localStorage.setItem("planner-allocations", JSON.stringify(plannerAllocations));
+  }, [plannerAllocations]);
+
+  useEffect(() => {
+    localStorage.setItem("custom-classes", JSON.stringify(customClasses));
+  }, [customClasses]);
+
+  useEffect(() => {
+    localStorage.setItem("class-subjects", JSON.stringify(classSubjects));
+  }, [classSubjects]);
+
+  useEffect(() => {
+    stateRef.current = {
+      announcements,
+      students,
+      teachers,
+      feeTransactions,
+      auditLogs,
+      plannerAllocations,
+      customClasses,
+      classSubjects,
+    };
+  }, [
+    announcements,
+    students,
+    teachers,
+    feeTransactions,
+    auditLogs,
+    plannerAllocations,
+    customClasses,
+    classSubjects,
+  ]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      switch (event.key) {
+        case "announcements": {
+          const raw = localStorage.getItem("announcements");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as Announcement[];
+            if (Array.isArray(parsed)) setAnnouncements(parsed);
+          } catch {
+            return;
+          }
+          break;
         }
+        case "students": {
+          const raw = localStorage.getItem("students");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as Student[];
+            if (Array.isArray(parsed)) setStudents(parsed);
+          } catch {
+            return;
+          }
+          break;
+        }
+        case "teachers": {
+          const raw = localStorage.getItem("teachers");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as AdminTeacherRecord[];
+            if (Array.isArray(parsed)) setTeachers(parsed);
+          } catch {
+            return;
+          }
+          break;
+        }
+        case "fee-transactions": {
+          const raw = localStorage.getItem("fee-transactions");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as FeeTransaction[];
+            if (Array.isArray(parsed)) setFeeTransactions(parsed);
+          } catch {
+            return;
+          }
+          break;
+        }
+        case "audit-logs": {
+          const raw = localStorage.getItem("audit-logs");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as AuditLogEntry[];
+            if (Array.isArray(parsed)) setAuditLogs(parsed);
+          } catch {
+            return;
+          }
+          break;
+        }
+        case "planner-allocations": {
+          const raw = localStorage.getItem("planner-allocations");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as PlannerAllocation[];
+            if (Array.isArray(parsed)) setPlannerAllocations(parsed);
+          } catch {
+            return;
+          }
+          break;
+        }
+        case "custom-classes": {
+          const raw = localStorage.getItem("custom-classes");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as string[];
+            if (Array.isArray(parsed)) setCustomClasses(parsed);
+          } catch {
+            return;
+          }
+          break;
+        }
+        case "class-subjects": {
+          const raw = localStorage.getItem("class-subjects");
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as Record<string, string[]>;
+            if (parsed && typeof parsed === "object") setClassSubjects(parsed);
+          } catch {
+            return;
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  useEffect(() => {
+    const syncFromStorage = () => {
+      const read = <T,>(key: string, fallback: T): T => {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        try {
+          const parsed = JSON.parse(raw) as T;
+          return parsed ?? fallback;
+        } catch {
+          return fallback;
+        }
+      };
+
+      const announcementsRaw = localStorage.getItem("announcements");
+      if (announcementsRaw && announcementsRaw !== JSON.stringify(stateRef.current.announcements)) {
+        const parsed = read<Announcement[]>("announcements", []);
+        if (Array.isArray(parsed)) setAnnouncements(parsed);
       }
 
-      const missingCount = student.assignments.filter((a) => a.status === "Missing").length;
-      const overduePendingCount = student.assignments.filter((a) => {
-        const dueDate = new Date(a.due);
-        return a.status === "Pending" && Number.isFinite(dueDate.getTime()) && dueDate < today;
-      }).length;
-
-      const assignmentIssueCount = missingCount + overduePendingCount;
-      if (assignmentIssueCount > 0) {
-        alerts.push({
-          id: `ass-${student.id}`,
-          type: "assignment",
-          severity: assignmentIssueCount > 2 ? "high" : "medium",
-          title: `Assignment Alert: ${student.name}`,
-          message: `${assignmentIssueCount} missing/overdue assignment(s) detected.`,
-          createdAt: new Date().toISOString(),
-        });
+      const studentsRaw = localStorage.getItem("students");
+      if (studentsRaw && studentsRaw !== JSON.stringify(stateRef.current.students)) {
+        const parsed = read<Student[]>("students", []);
+        if (Array.isArray(parsed)) setStudents(parsed);
       }
-    });
 
-    announcements.forEach((announcement) => {
-      const announcementDate = new Date(announcement.date);
-      if (!Number.isFinite(announcementDate.getTime())) return;
-      const diffDays = Math.ceil((announcementDate.getTime() - today.getTime()) / dayMs);
-      if (diffDays >= 0 && diffDays <= 7) {
-        alerts.push({
-          id: `ann-${announcement.id}`,
-          type: "announcement",
-          severity: announcement.priority === "high" ? "high" : "low",
-          title: `Expiring Announcement: ${announcement.title}`,
-          message: `Announcement date is ${announcement.date}. Review before it expires.`,
-          createdAt: new Date().toISOString(),
-        });
+      const teachersRaw = localStorage.getItem("teachers");
+      if (teachersRaw && teachersRaw !== JSON.stringify(stateRef.current.teachers)) {
+        const parsed = read<AdminTeacherRecord[]>("teachers", []);
+        if (Array.isArray(parsed)) setTeachers(parsed);
       }
-    });
 
-    return alerts.sort((a, b) => {
-      const weight = { high: 3, medium: 2, low: 1 };
-      return weight[b.severity] - weight[a.severity];
-    });
-  }, [announcements, students]);
+      const feeRaw = localStorage.getItem("fee-transactions");
+      if (feeRaw && feeRaw !== JSON.stringify(stateRef.current.feeTransactions)) {
+        const parsed = read<FeeTransaction[]>("fee-transactions", []);
+        if (Array.isArray(parsed)) setFeeTransactions(parsed);
+      }
+
+      const auditRaw = localStorage.getItem("audit-logs");
+      if (auditRaw && auditRaw !== JSON.stringify(stateRef.current.auditLogs)) {
+        const parsed = read<AuditLogEntry[]>("audit-logs", []);
+        if (Array.isArray(parsed)) setAuditLogs(parsed);
+      }
+
+      const plannerRaw = localStorage.getItem("planner-allocations");
+      if (plannerRaw && plannerRaw !== JSON.stringify(stateRef.current.plannerAllocations)) {
+        const parsed = read<PlannerAllocation[]>("planner-allocations", []);
+        if (Array.isArray(parsed)) setPlannerAllocations(parsed);
+      }
+
+      const classesRaw = localStorage.getItem("custom-classes");
+      if (classesRaw && classesRaw !== JSON.stringify(stateRef.current.customClasses)) {
+        const parsed = read<string[]>("custom-classes", []);
+        if (Array.isArray(parsed)) setCustomClasses(parsed);
+      }
+
+      const subjectsRaw = localStorage.getItem("class-subjects");
+      if (subjectsRaw && subjectsRaw !== JSON.stringify(stateRef.current.classSubjects)) {
+        const parsed = read<Record<string, string[]>>("class-subjects", {});
+        if (parsed && typeof parsed === "object") setClassSubjects(parsed);
+      }
+    };
+
+    const interval = window.setInterval(syncFromStorage, 3000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const classOptions = useMemo(() => {
     const fromStudents = students.map((s) => s.grade);
@@ -244,6 +470,7 @@ const AdminPortal = () => {
             onRecordTransaction={(transaction) =>
               setFeeTransactions((prev) => [transaction, ...prev])
             }
+            onTransactionsChange={setFeeTransactions}
             transactions={feeTransactions}
             onAuditLog={addAuditLog}
             currentAdmin={currentAdmin}
@@ -283,6 +510,9 @@ const AdminPortal = () => {
           <AdminCreateClass
             classes={customClasses}
             classSubjects={classSubjects}
+            teachers={teachers}
+            students={students}
+            courses={COURSES}
             onAddClass={(value) => {
               setCustomClasses((prev) => [...prev, value]);
               setClassSubjects((prev) => ({ ...prev, [value]: prev[value] ?? [] }));
@@ -342,15 +572,6 @@ const AdminPortal = () => {
         setActiveNav(id);
       }}
     >
-      {/* Page Title with subtle background */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {navItems.find((item) => item.id === activeNav)?.label || "Admin Portal"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage students, teachers, fees, and more.
-        </p>
-      </div>
 
       {/* Main content area with consistent card styling */}
       <div className="bg-card border border-border rounded-2xl shadow-sm p-6">

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { FileText, UserCheck, ClipboardList, Award } from "lucide-react";
 import {
   BarChart,
@@ -25,7 +26,6 @@ const getLetterGrade = (percentage: number): string => {
   return "F";
 };
 
-// Helper to get bar color based on percentage
 const getBarColor = (percentage: number): string => {
   if (percentage >= 90) return "#10b981"; // emerald-500
   if (percentage >= 80) return "#22c55e"; // green-500
@@ -36,20 +36,50 @@ const getBarColor = (percentage: number): string => {
 
 const StudentDashboard = ({ student, onNavigate }: Props) => {
   // Attendance percentage
-  const attPct = (
-    (student.attendance.present / student.attendance.total) *
-    100
-  ).toFixed(0);
+  const attPct =
+    student.attendance.total > 0
+      ? Math.round(
+          (student.attendance.present / student.attendance.total) * 100
+        ).toString()
+      : "0";
 
-  // Average marks across all tests
-  const avgMarks = (
-    student.tests.reduce((a, t) => a + (t.marks / t.total) * 100, 0) /
-    student.tests.length
-  ).toFixed(1);
+  const overallPercentage = useMemo(() => {
+    const totalMarks = student.tests.reduce((sum, test) => sum + test.marks, 0);
+    const totalPossible = student.tests.reduce(
+      (sum, test) => sum + test.total,
+      0
+    );
+    if (totalPossible === 0) return 0;
+    return Math.round((totalMarks / totalPossible) * 100);
+  }, [student.tests]);
 
-  const overallGrade = getLetterGrade(Number(avgMarks));
+  const overallGrade = getLetterGrade(overallPercentage);
 
-  const pendingAssignments = student.assignments.filter(
+  const pendingQuizzes = useMemo(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const rawQuizzes = localStorage.getItem("teacher-quizzes");
+      const quizzes = rawQuizzes
+        ? (JSON.parse(rawQuizzes) as { id: string; classGrade: string }[])
+        : [];
+      const rawSubmissions = localStorage.getItem("quiz-submissions");
+      const submissions = rawSubmissions
+        ? (JSON.parse(rawSubmissions) as { quizId: string; studentId: number }[])
+        : [];
+
+      const eligible = quizzes.filter((quiz) => quiz.classGrade === student.grade);
+      const submitted = new Set(
+        submissions
+          .filter((sub) => sub.studentId === student.id)
+          .map((sub) => sub.quizId)
+      );
+      return eligible.filter((quiz) => !submitted.has(quiz.id)).length;
+    } catch {
+      return 0;
+    }
+  }, [student.grade, student.id]);
+
+  const pendingAssignments = (student.assignments ?? []).filter(
     (a) => a.status === "Pending"
   ).length;
 
@@ -96,25 +126,22 @@ const StudentDashboard = ({ student, onNavigate }: Props) => {
             <p className="text-2xl font-bold text-foreground">
               {overallGrade}
             </p>
-            <span className="text-sm text-muted-foreground">
-              ({avgMarks}%)
-            </span>
           </div>
         </button>
 
-        {/* Avg Marks */}
-        <button
-          onClick={() => onNavigate("grades")}
-          className="bg-card border border-border rounded-xl p-5 text-left hover:border-primary/30 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-muted-foreground">Avg Marks</p>
-            <div className="h-10 w-10 rounded-lg text-info bg-info/10 flex items-center justify-center">
-              <FileText className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{avgMarks}%</p>
-        </button>
+        {/* Pending Quizzes */}
+<button
+  onClick={() => onNavigate("quizzes")}
+  className="bg-card border border-border rounded-xl p-5 text-left hover:border-primary/30 transition-colors cursor-pointer"
+>
+  <div className="flex items-center justify-between mb-3">
+    <p className="text-sm text-muted-foreground">Pending Quizzes</p>
+    <div className="h-10 w-10 rounded-lg text-info bg-info/10 flex items-center justify-center">
+      <FileText className="h-5 w-5" />
+    </div>
+  </div>
+  <p className="text-2xl font-bold text-foreground">{pendingQuizzes}</p>
+</button>
 
         {/* Attendance */}
         <button

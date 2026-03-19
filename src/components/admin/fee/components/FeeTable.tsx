@@ -11,6 +11,7 @@ type Props = {
   collectorMap: Record<number, string>;
   remarksMap: Record<number, string>;
   currentAdmin: string;
+  showInlineControls?: boolean;
   onSelectStudent: (studentId: number) => void;
   onPaymentChange: (studentId: number, value: string) => void;
   onMethodChange: (studentId: number, value: PaymentMethod) => void;
@@ -28,6 +29,7 @@ const FeeTable = ({
   collectorMap,
   remarksMap,
   currentAdmin,
+  showInlineControls = true,
   onSelectStudent,
   onPaymentChange,
   onMethodChange,
@@ -61,8 +63,8 @@ const FeeTable = ({
               "Courses",
               "Status",
               "Pending",
-              "Collect Fee",
               "Actions",
+              ...(showInlineControls ? ["Collect Fee"] : []),
             ].map((head) => (
               <th
                 key={head}
@@ -78,7 +80,10 @@ const FeeTable = ({
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td className="px-4 py-8 text-sm text-muted-foreground text-center" colSpan={8}>
+              <td
+                className="px-4 py-8 text-sm text-muted-foreground text-center"
+                colSpan={showInlineControls ? 8 : 7}
+              >
                 No student found for this search.
               </td>
             </tr>
@@ -127,44 +132,6 @@ const FeeTable = ({
                 </span>
               </td>
               <td className="px-4 py-3">
-                <div className="space-y-1">
-                  <input
-                    value={paymentMap[student.id] || ""}
-                    onChange={(e) => onPaymentChange(student.id, e.target.value)}
-                    placeholder="Amount"
-                    className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm"
-                    disabled={!hasPending}
-                  />
-                  <select
-                    value={methodMap[student.id] || "Cash"}
-                    onChange={(e) =>
-                      onMethodChange(student.id, e.target.value as PaymentMethod)
-                    }
-                    className="w-28 rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    disabled={!hasPending}
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="Bank Transfer">Bank</option>
-                    <option value="Online">Online</option>
-                  </select>
-                  <input
-                    value={collectorMap[student.id] ?? currentAdmin}
-                    onChange={(e) => onCollectorChange(student.id, e.target.value)}
-                    placeholder="Collector"
-                    className="w-28 rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    disabled={!hasPending}
-                  />
-                  <input
-                    value={remarksMap[student.id] || ""}
-                    onChange={(e) => onRemarksChange(student.id, e.target.value)}
-                    placeholder="Remarks"
-                    className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    disabled={!hasPending}
-                  />
-                </div>
-              </td>
-              <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => onSelectStudent(student.id)}
@@ -188,6 +155,46 @@ const FeeTable = ({
                   </button>
                 </div>
               </td>
+              {showInlineControls && (
+                <td className="px-4 py-3">
+                  <div className="space-y-1">
+                    <input
+                      value={paymentMap[student.id] || ""}
+                      onChange={(e) => onPaymentChange(student.id, e.target.value)}
+                      placeholder="Amount"
+                      className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                      disabled={!hasPending}
+                    />
+                    <select
+                      value={methodMap[student.id] || "Cash"}
+                      onChange={(e) =>
+                        onMethodChange(student.id, e.target.value as PaymentMethod)
+                      }
+                      className="w-28 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                      disabled={!hasPending}
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Card">Card</option>
+                      <option value="Bank Transfer">Bank</option>
+                      <option value="Online">Online</option>
+                    </select>
+                    <input
+                      value={collectorMap[student.id] ?? currentAdmin}
+                      onChange={(e) => onCollectorChange(student.id, e.target.value)}
+                      placeholder="Collector"
+                      className="w-28 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                      disabled={!hasPending}
+                    />
+                    <input
+                      value={remarksMap[student.id] || ""}
+                      onChange={(e) => onRemarksChange(student.id, e.target.value)}
+                      placeholder="Remarks"
+                      className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                      disabled={!hasPending}
+                    />
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -6,6 +6,7 @@ export type FeeManagementProps = {
   transactions?: FeeTransaction[];
   onStudentsChange: (next: Student[]) => void;
   onRecordTransaction?: (transaction: FeeTransaction) => void;
+  onTransactionsChange?: (next: FeeTransaction[]) => void;
   onAuditLog?: (entry: Omit<AuditLogEntry, "id" | "createdAt">) => void;
   currentAdmin?: string;
   showPendingOnly?: boolean;

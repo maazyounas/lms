@@ -64,6 +64,7 @@ interface Props {
 
 const AdminLeaveRequests = ({ onPendingCountChange }: Props) => {
   const [leaveRequests, setLeaveRequests] = useState(leavesSeed);
+  const [activeType, setActiveType] = useState<"All" | "Student" | "Teacher">("All");
 
   const updateStatus = (id: number, status: LeaveStatus) => {
     setLeaveRequests((prev) => {
@@ -74,9 +75,46 @@ const AdminLeaveRequests = ({ onPendingCountChange }: Props) => {
     toast.success(`Leave ${status.toLowerCase()}.`);
   };
 
+  const filteredLeaves =
+    activeType === "All"
+      ? leaveRequests
+      : leaveRequests.filter((l) => l.personType === activeType);
+
+  const pendingCounts = leaveRequests.reduce(
+    (acc, leave) => {
+      if (leave.status !== "Pending") return acc;
+      if (leave.personType === "Student") acc.students += 1;
+      if (leave.personType === "Teacher") acc.teachers += 1;
+      return acc;
+    },
+    { students: 0, teachers: 0 }
+  );
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-5">Leave Requests</h1>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {(["All", "Student", "Teacher"] as const).map((type) => (
+          <button
+            key={type}
+            onClick={() => setActiveType(type)}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              activeType === type
+                ? "border-primary/60 bg-primary/10 text-primary"
+                : "border-border bg-background text-foreground"
+            }`}
+          >
+            {type}
+            {type === "Student" && pendingCounts.students > 0
+              ? ` (${pendingCounts.students})`
+              : ""}
+            {type === "Teacher" && pendingCounts.teachers > 0
+              ? ` (${pendingCounts.teachers})`
+              : ""}
+          </button>
+        ))}
+      </div>
+
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full">
           <thead>
@@ -89,7 +127,7 @@ const AdminLeaveRequests = ({ onPendingCountChange }: Props) => {
             </tr>
           </thead>
           <tbody>
-            {leaveRequests.map((l) => (
+            {filteredLeaves.map((l) => (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-2 text-sm">
                   {l.personName}

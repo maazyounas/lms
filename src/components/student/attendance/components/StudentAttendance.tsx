@@ -179,7 +179,6 @@ const StudentAttendance = ({ student }: Props) => {
     <div>
       {/* Header with filter reset */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Attendance</h1>
         {(statusFilter || courseFilter) && (
           <button
             onClick={() => {

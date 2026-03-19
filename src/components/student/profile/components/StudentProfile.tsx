@@ -46,7 +46,6 @@ const StudentProfile = ({ student }: Props) => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">My Profile</h1>
 
       {/* Profile Header Card */}
       <div className="bg-card border border-border rounded-xl p-6 mb-6">

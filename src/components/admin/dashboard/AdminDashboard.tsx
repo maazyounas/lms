@@ -66,10 +66,12 @@ type TooltipPayload = {
 const AdminDashboard = ({
   students,
   teachersCount,
+  announcements,
   pendingLeaves,
   onOpenStudent,
   onOpenStudentSearch,
   onOpenTeacherSearch,
+  onOpenAnnouncements,
   onOpenLeaveRequests,
   onOpenFeeWithDues,
 }: Props) => {
@@ -239,7 +241,7 @@ const AdminDashboard = ({
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-              <CalendarClock className="h-6 w-6" />
+              <Bell className="h-6 w-6" />
             </div>
           </div>
         </button>
@@ -258,6 +260,24 @@ const AdminDashboard = ({
             </div>
             <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
               <Wallet className="h-6 w-6" />
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenAnnouncements}
+          className="bg-card border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Announcements</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {announcements.length}
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <CalendarClock className="h-6 w-6" />
             </div>
           </div>
         </button>
