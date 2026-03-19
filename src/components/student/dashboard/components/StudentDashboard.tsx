@@ -11,20 +11,12 @@ import {
 } from "recharts";
 import type { Student } from "@/data/mockData";
 import { ANNOUNCEMENTS } from "@/data/mockData";
+import { cambridgeGradeColor, percentageToCambridgeGrade } from "@/lib/grades";
 
 interface Props {
   student: Student;
   onNavigate: (nav: string) => void;
 }
-
-// Helper to convert percentage to letter grade
-const getLetterGrade = (percentage: number): string => {
-  if (percentage >= 90) return "A";
-  if (percentage >= 80) return "B";
-  if (percentage >= 70) return "C";
-  if (percentage >= 60) return "D";
-  return "F";
-};
 
 const getBarColor = (percentage: number): string => {
   if (percentage >= 90) return "#10b981"; // emerald-500
@@ -53,7 +45,7 @@ const StudentDashboard = ({ student, onNavigate }: Props) => {
     return Math.round((totalMarks / totalPossible) * 100);
   }, [student.tests]);
 
-  const overallGrade = getLetterGrade(overallPercentage);
+  const overallGrade = percentageToCambridgeGrade(overallPercentage);
 
   const pendingQuizzes = useMemo(() => {
     if (typeof window === "undefined") return 0;
@@ -219,13 +211,8 @@ const StudentDashboard = ({ student, onNavigate }: Props) => {
                             </p>
                             <p className="text-muted-foreground">
                               Grade:{" "}
-                              <span
-                                className="font-medium"
-                                style={{
-                                  color: getBarColor(data.percentage),
-                                }}
-                              >
-                                {getLetterGrade(data.percentage)}
+                              <span className={`font-medium ${cambridgeGradeColor(percentageToCambridgeGrade(data.percentage))}`}>
+                                {percentageToCambridgeGrade(data.percentage)}
                               </span>
                             </p>
                           </div>

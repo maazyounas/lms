@@ -7,6 +7,7 @@ import {
   type Student,
   type Teacher,
 } from "@/data/mockData";
+import { cambridgeGradeColor, percentageToCambridgeGrade } from "@/lib/grades";
 
 const studentCode = (id: number) => `STU-${String(id).padStart(4, "0")}`;
 
@@ -65,10 +66,24 @@ const AdminUsers = () => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground">Current GPA</p>
-            <p className="text-2xl font-bold text-primary">
-              {selectedStudent.progress.at(-1)?.gpa.toFixed(2)}
-            </p>
+            <p className="text-xs text-muted-foreground">Latest Result</p>
+            {(() => {
+              const latest = selectedStudent.progress.at(-1);
+              if (!latest) {
+                return <p className="text-sm text-muted-foreground">No data</p>;
+              }
+              const grade = percentageToCambridgeGrade(latest.percentage);
+              return (
+                <div className="flex items-end gap-2">
+                  <p className="text-2xl font-bold text-primary">
+                    {latest.percentage.toFixed(1)}%
+                  </p>
+                  <p className={`text-sm font-semibold ${cambridgeGradeColor(grade)}`}>
+                    {grade}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-xs text-muted-foreground">Attendance</p>
@@ -172,7 +187,7 @@ const AdminUsers = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  {["Student", "ID", "Class", "GPA", "Fees"].map((h) => (
+                  {["Student", "ID", "Class", "Latest %", "Fees"].map((h) => (
                     <th key={h} className="px-4 py-2 text-left text-xs text-muted-foreground">
                       {h}
                     </th>
@@ -181,6 +196,11 @@ const AdminUsers = () => {
               </thead>
               <tbody>
                 {filteredStudents.map((s) => (
+                  (() => {
+                    const latest = s.progress.at(-1);
+                    const percentage = latest?.percentage ?? 0;
+                    const grade = percentageToCambridgeGrade(percentage);
+                    return (
                   <tr
                     key={s.id}
                     onClick={() => setSelectedStudent(s)}
@@ -192,7 +212,12 @@ const AdminUsers = () => {
                     </td>
                     <td className="px-4 py-2 text-sm">{s.grade}</td>
                     <td className="px-4 py-2 text-sm font-semibold">
-                      {s.progress.at(-1)?.gpa.toFixed(2)}
+                      <div className="flex items-center gap-2">
+                        <span>{percentage.toFixed(1)}%</span>
+                        <span className={`text-xs font-semibold ${cambridgeGradeColor(grade)}`}>
+                          {grade}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${badge(s.fees.status)}`}>
@@ -200,6 +225,8 @@ const AdminUsers = () => {
                       </span>
                     </td>
                   </tr>
+                    );
+                  })()
                 ))}
               </tbody>
             </table>

@@ -90,13 +90,13 @@ const PortalLayout = ({
           <GraduationCap className="h-8 w-8 text-primary shrink-0" />
           {(!isMobile && sidebarOpen) && (
             <span className="font-bold text-xl text-sidebar-foreground truncate tracking-tight">
-              EduVerse
+              ASAS Academy
             </span>
           )}
           {/* On mobile, always show logo text when sidebar open */}
           {isMobile && sidebarOpen && (
             <span className="font-bold text-xl text-sidebar-foreground truncate tracking-tight">
-              EduVerse
+              ASAS Academy
             </span>
           )}
         </div>

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import Login from "./pages/Login";
 import AdminPortal from "./pages/AdminPortal";
@@ -21,9 +21,12 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route path="/admin" element={<AdminPortal />} />
-            <Route path="/student" element={<StudentPortal />} />
-            <Route path="/teacher" element={<TeacherPortal />} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/:section" element={<AdminPortal />} />
+            <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+            <Route path="/student/:section" element={<StudentPortal />} />
+            <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
+            <Route path="/teacher/:section" element={<TeacherPortal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

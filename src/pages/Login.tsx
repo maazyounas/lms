@@ -52,7 +52,7 @@ const Login = () => {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <GraduationCap className="h-10 w-10 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">EduVerse LMS</h1>
+            <h1 className="text-2xl font-bold text-foreground">ASAS Academy</h1>
           </div>
           <p className="text-muted-foreground text-sm">Learning Management System</p>
         </div>
@@ -85,7 +85,7 @@ const Login = () => {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <GraduationCap className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-bold text-foreground">EduVerse LMS</h1>
+            <h1 className="text-xl font-bold text-foreground">ASAS Academy</h1>
           </div>
 
           <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back</h2>
@@ -160,7 +160,7 @@ const Login = () => {
           </form>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            © 2026 EduVerse LMS. All rights reserved.
+            © 2026 ASAS Academy. All rights reserved.
           </p>
         </div>
       </div>

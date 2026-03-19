@@ -27,6 +27,7 @@ import {
   type Student,
 } from "@/data/mockData";
 import { toast } from "sonner";
+import { cambridgeGradeColor, percentageToCambridgeGrade } from "@/lib/grades";
 
 interface Props {
   teacher: Teacher;
@@ -37,24 +38,8 @@ interface Props {
 // Mock leaves data
 const PENDING_LEAVES = 3;
 
-// Helper to convert GPA to letter grade
-const gpaToLetter = (gpa: number): string => {
-  if (gpa >= 3.7) return "A";
-  if (gpa >= 3.0) return "B";
-  if (gpa >= 2.0) return "C";
-  if (gpa >= 1.0) return "D";
-  return "F";
-};
-
-// Helper to get color class for grade
-const gradeColor = (grade: string) => {
-  switch (grade) {
-    case "A": return "text-success";
-    case "B": return "text-info";
-    case "C": return "text-warning";
-    default: return "text-destructive";
-  }
-};
+const toPercentage = (marks: number, total: number) =>
+  total > 0 ? (marks / total) * 100 : 0;
 
 const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
   const [search, setSearch] = useState("");
@@ -313,10 +298,18 @@ const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
                           <td className="p-2">{test.subject}</td>
                           <td className="p-2">{test.test}</td>
                           <td className="p-2">{test.marks}/{test.total}</td>
-                          <td className="p-2">{((test.marks / test.total) * 100).toFixed(1)}%</td>
-                          <td className="p-2 font-medium" style={{ color: `hsl(var(--${test.grade.startsWith("A") ? "success" : test.grade.startsWith("B") ? "info" : test.grade.startsWith("C") ? "warning" : "destructive"}))` }}>
-                            {test.grade}
-                          </td>
+                          {(() => {
+                            const percentage = toPercentage(test.marks, test.total);
+                            const grade = percentageToCambridgeGrade(percentage);
+                            return (
+                              <>
+                                <td className="p-2">{percentage.toFixed(1)}%</td>
+                                <td className={`p-2 font-medium ${cambridgeGradeColor(grade)}`}>
+                                  {grade}
+                                </td>
+                              </>
+                            );
+                          })()}
                           <td className="p-2">{new Date(test.date).toLocaleDateString()}</td>
                         </tr>
                       ))}
@@ -367,14 +360,16 @@ const TeacherDashboard = ({ teacher, onNavigate }: Props) => {
                   <h4 className="font-medium text-foreground mb-3">Monthly Grades</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                     {selectedStudent.progress.map((p, idx) => {
-                      const letter = gpaToLetter(p.gpa);
+                      const letter = percentageToCambridgeGrade(p.percentage);
                       return (
                         <div key={idx} className="bg-muted/20 p-2 rounded-lg text-center">
                           <div className="text-sm font-semibold">{p.month}</div>
-                          <div className={`text-lg font-bold ${gradeColor(letter)}`}>
+                          <div className={`text-lg font-bold ${cambridgeGradeColor(letter)}`}>
                             {letter}
                           </div>
-                          <div className="text-xs text-muted-foreground">({p.gpa.toFixed(1)})</div>
+                          <div className="text-xs text-muted-foreground">
+                            ({p.percentage.toFixed(1)}%)
+                          </div>
                         </div>
                       );
                     })}

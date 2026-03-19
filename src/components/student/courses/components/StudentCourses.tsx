@@ -5,6 +5,7 @@ import { materialIcon } from "@/components/teacher/classes/classUtils";
 
 const StudentCourses = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [visibleCount, setVisibleCount] = useState(6);
 
   const selectedCourse = COURSES.find(c => c.id === selectedCourseId);
   const teacher = selectedCourse
@@ -260,8 +261,14 @@ const StudentCourses = () => {
         My Courses
       </h1>
 
+      {COURSES.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground text-center">
+          No courses assigned yet. Your courses will appear here once you are enrolled.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {COURSES.map(course => (
+        {COURSES.slice(0, visibleCount).map(course => (
           <button
             key={course.id}
             onClick={() => setSelectedCourseId(course.id)}
@@ -284,6 +291,17 @@ const StudentCourses = () => {
           </button>
         ))}
       </div>
+
+      {COURSES.length > visibleCount && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setVisibleCount((prev) => prev + 6)}
+            className="text-sm text-primary hover:underline"
+          >
+            Show more courses
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, ClipboardCheck, Timer } from "lucide-react";
 import type { Student } from "@/data/mockData";
 import { getEnrolledCourses } from "@/components/admin/fee/utils/feeUtils";
+import { cambridgeGradeColor, percentageToCambridgeGrade } from "@/lib/grades";
 
 type Option = {
   id: string;
@@ -56,6 +57,8 @@ const StudentQuizzes = ({ student }: Props) => {
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [reviewSubmissionId, setReviewSubmissionId] = useState<string | null>(null);
+  const [visibleAvailable, setVisibleAvailable] = useState(6);
+  const [visibleSubmissions, setVisibleSubmissions] = useState(6);
 
   const enrolledSubjects = useMemo(() => getEnrolledCourses(student), [student]);
 
@@ -75,6 +78,14 @@ const StudentQuizzes = ({ student }: Props) => {
     if (selectedSubject === "all") return quizzes;
     return quizzes.filter((quiz) => quiz.subject === selectedSubject);
   }, [quizzes, selectedSubject]);
+
+  useEffect(() => {
+    setVisibleAvailable(6);
+  }, [selectedSubject, quizzes.length]);
+
+  useEffect(() => {
+    setVisibleSubmissions(6);
+  }, [submissions.length]);
 
   const submittedQuizIds = useMemo(
     () => new Set(submissions.map((sub) => sub.quizId)),
@@ -184,7 +195,18 @@ const StudentQuizzes = ({ student }: Props) => {
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Timer className="h-4 w-4" /> Average Score
           </div>
-          <p className="text-2xl font-bold text-foreground mt-2">{summary.avg}%</p>
+          <div className="flex items-center gap-2 mt-2">
+            <p className="text-2xl font-bold text-foreground">{summary.avg}%</p>
+            {summary.total > 0 && (
+              <span
+                className={`text-sm font-semibold ${cambridgeGradeColor(
+                  percentageToCambridgeGrade(summary.avg)
+                )}`}
+              >
+                {percentageToCambridgeGrade(summary.avg)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -219,10 +241,12 @@ const StudentQuizzes = ({ student }: Props) => {
           <div className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">Available Quizzes</h3>
             {availableQuizzes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No quizzes available.</p>
+              <p className="text-sm text-muted-foreground">
+                No quizzes available. If this looks wrong, check your class and subject filters.
+              </p>
             ) : (
               <div className="space-y-3">
-                {availableQuizzes.map((quiz) => (
+                {availableQuizzes.slice(0, visibleAvailable).map((quiz) => (
                   <button
                     key={quiz.id}
                     onClick={() => handleStartQuiz(quiz)}
@@ -237,6 +261,14 @@ const StudentQuizzes = ({ student }: Props) => {
                     </p>
                   </button>
                 ))}
+                {availableQuizzes.length > visibleAvailable && (
+                  <button
+                    onClick={() => setVisibleAvailable((prev) => prev + 6)}
+                    className="text-xs text-primary hover:underline text-left"
+                  >
+                    Show more quizzes
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -244,10 +276,15 @@ const StudentQuizzes = ({ student }: Props) => {
           <div className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">Past Performance</h3>
             {submissions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No submissions yet.</p>
+              <p className="text-sm text-muted-foreground">
+                No submissions yet. Attempt a quiz and your results will appear here.
+              </p>
             ) : (
               <div className="space-y-2">
-                {submissions.map((sub) => (
+                {submissions.slice(0, visibleSubmissions).map((sub) => {
+                  const percentage = Math.round((sub.score / sub.total) * 100);
+                  const grade = percentageToCambridgeGrade(percentage);
+                  return (
                   <div
                     key={sub.id}
                     className="rounded-lg border border-border bg-background p-3"
@@ -270,7 +307,10 @@ const StudentQuizzes = ({ student }: Props) => {
                           {sub.score}/{sub.total}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {Math.round((sub.score / sub.total) * 100)}%
+                          {percentage}%
+                          <span className={`ml-2 font-semibold ${cambridgeGradeColor(grade)}`}>
+                            {grade}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -284,7 +324,16 @@ const StudentQuizzes = ({ student }: Props) => {
                       Review Attempt
                     </button>
                   </div>
-                ))}
+                  );
+                })}
+                {submissions.length > visibleSubmissions && (
+                  <button
+                    onClick={() => setVisibleSubmissions((prev) => prev + 6)}
+                    className="text-xs text-primary hover:underline text-left"
+                  >
+                    Show more submissions
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -171,6 +171,13 @@ const TeacherCheckQuizzes = ({ teacher }: Props) => {
         </div>
       </div>
 
+      {quizzes.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
+          No quizzes found yet. Create your first quiz from the "Create Quiz" section, then return
+          here to review submissions.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-4">
           <div className="rounded-xl border border-border bg-card p-4">
@@ -237,7 +244,10 @@ const TeacherCheckQuizzes = ({ teacher }: Props) => {
               </div>
 
               {quizSubmissions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No submissions yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No submissions yet. Share the quiz with students and check back here once they
+                  submit.
+                </p>
               ) : (
                 <div className="grid grid-cols-1 gap-2">
                   {quizSubmissions.map((sub) => {

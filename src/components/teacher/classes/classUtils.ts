@@ -1,12 +1,8 @@
 import { File, FileText, Link, Video } from "lucide-react";
 import type { StudyMaterial } from "@/data/mockData";
+import { cambridgeGradeColor } from "@/lib/grades";
 
-export const gradeColor = (g: string) => {
-  if (g.startsWith("A")) return "text-success";
-  if (g.startsWith("B")) return "text-info";
-  if (g.startsWith("C")) return "text-warning";
-  return "text-destructive";
-};
+export const gradeColor = (g: string) => cambridgeGradeColor(g);
 
 export const materialIcon = (type: StudyMaterial["type"]) => {
   switch (type) {

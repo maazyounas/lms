@@ -40,6 +40,7 @@ const StudentAssignments = ({ student }: Props) => {
   const [uploadedFiles, setUploadedFiles] = useState<Record<number, string>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [visibleCount, setVisibleCount] = useState(9);
 
   const selected = selectedIdx !== null ? assignments[selectedIdx] : null;
 
@@ -263,8 +264,13 @@ const StudentAssignments = ({ student }: Props) => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-6">Assignments</h1>
+      {assignments.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground text-center">
+          No assignments yet. When your teachers post work, it will appear here.
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {assignments.map((a, i) => (
+        {assignments.slice(0, visibleCount).map((a, i) => (
           <button
             key={i}
             onClick={() => setSelectedIdx(i)}
@@ -296,6 +302,16 @@ const StudentAssignments = ({ student }: Props) => {
           </button>
         ))}
       </div>
+      {assignments.length > visibleCount && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setVisibleCount((prev) => prev + 9)}
+            className="text-sm text-primary hover:underline"
+          >
+            Show more assignments
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ClipboardList, Save, User } from "lucide-react";
 import { STUDENTS, type Student, type Teacher } from "@/data/mockData";
 import { toast } from "sonner";
+import { cambridgeGradeColor, percentageToCambridgeGrade } from "@/lib/grades";
 
 type GradebookEntry = {
   id: string;
@@ -29,6 +30,10 @@ const TeacherGradebook = ({ teacher }: Props) => {
   const [marksMap, setMarksMap] = useState<Record<number, string>>({});
   const [entries, setEntries] = useState<GradebookEntry[]>([]);
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [autoFillMissing, setAutoFillMissing] = useState(true);
+  const [page, setPage] = useState(1);
+
+  const pageSize = 20;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -41,6 +46,13 @@ const TeacherGradebook = ({ teacher }: Props) => {
     () => STUDENTS.filter((s) => s.grade === selectedClass),
     [selectedClass]
   );
+
+  const totalMarksNumber = Number(totalMarks);
+  const totalPages = Math.max(1, Math.ceil(classStudents.length / pageSize));
+  const pagedStudents = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return classStudents.slice(start, start + pageSize);
+  }, [classStudents, page, pageSize]);
 
   const activeEntry = useMemo(
     () => entries.find((e) => e.id === activeEntryId) || null,
@@ -55,6 +67,10 @@ const TeacherGradebook = ({ teacher }: Props) => {
     setMarksMap(next);
   }, [classStudents]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [selectedClass, classStudents.length]);
+
   const handleSave = () => {
     const total = Number(totalMarks);
     if (!selectedClass) {
@@ -68,6 +84,16 @@ const TeacherGradebook = ({ teacher }: Props) => {
     if (Number.isNaN(total) || total <= 0) {
       toast.error("Total marks must be greater than 0.");
       return;
+    }
+
+    if (!autoFillMissing) {
+      const missing = classStudents.filter(
+        (s) => marksMap[s.id] === "" || marksMap[s.id] === undefined
+      );
+      if (missing.length > 0) {
+        toast.error("Enter marks for all students or enable auto-fill missing as 0.");
+        return;
+      }
     }
 
     const marks = classStudents.map((s) => {
@@ -114,6 +140,9 @@ const TeacherGradebook = ({ teacher }: Props) => {
         <p className="text-sm text-muted-foreground mt-1">
           Enter marks by class, term, and assessment.
         </p>
+      </div>
+      <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+        Enter total marks once; percentages and Cambridge grades are calculated automatically.
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -164,16 +193,42 @@ const TeacherGradebook = ({ teacher }: Props) => {
               </div>
             </div>
 
+            <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                id="auto-fill-missing"
+                type="checkbox"
+                checked={autoFillMissing}
+                onChange={(e) => setAutoFillMissing(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <label htmlFor="auto-fill-missing">
+                Auto-fill missing marks as 0 when saving
+              </label>
+            </div>
+
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30">
                   <tr>
                     <th className="text-left p-2">Student</th>
                     <th className="text-left p-2">Marks</th>
+                    <th className="text-left p-2">%</th>
+                    <th className="text-left p-2">Grade</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {classStudents.map((s) => (
+                  {pagedStudents.map((s) => {
+                    const raw = marksMap[s.id];
+                    const hasValue = raw !== "" && raw !== undefined;
+                    const numeric = hasValue ? Number(raw) : autoFillMissing ? 0 : NaN;
+                    const safeMarks = Number.isNaN(numeric) ? null : numeric;
+                    const percent =
+                      safeMarks !== null && !Number.isNaN(totalMarksNumber) && totalMarksNumber > 0
+                        ? (safeMarks / totalMarksNumber) * 100
+                        : null;
+                    const grade =
+                      percent !== null ? percentageToCambridgeGrade(percent) : null;
+                    return (
                     <tr key={s.id} className="border-b border-border last:border-0">
                       <td className="p-2">
                         <div className="flex items-center gap-2">
@@ -199,11 +254,18 @@ const TeacherGradebook = ({ teacher }: Props) => {
                           className="w-24 rounded-md border border-border bg-muted/30 px-2 py-1 text-sm"
                         />
                       </td>
+                      <td className="p-2 text-sm text-muted-foreground">
+                        {percent === null ? "—" : `${percent.toFixed(1)}%`}
+                      </td>
+                      <td className={`p-2 text-sm font-semibold ${grade ? cambridgeGradeColor(grade) : "text-muted-foreground"}`}>
+                        {grade ?? "—"}
+                      </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {classStudents.length === 0 && (
                     <tr>
-                      <td colSpan={2} className="p-4 text-center text-muted-foreground">
+                      <td colSpan={4} className="p-4 text-center text-muted-foreground">
                         No students in this class.
                       </td>
                     </tr>
@@ -211,6 +273,36 @@ const TeacherGradebook = ({ teacher }: Props) => {
                 </tbody>
               </table>
             </div>
+
+            {classStudents.length > pageSize && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                <div>
+                  Showing {(page - 1) * pageSize + 1}-
+                  {Math.min(page * pageSize, classStudents.length)} of {classStudents.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="px-2 py-1 rounded border border-border hover:bg-muted/40"
+                    disabled={page === 1}
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className="px-2 py-1 rounded border border-border hover:bg-muted/40"
+                    disabled={page === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 flex justify-end">
               <button

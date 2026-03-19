@@ -25,6 +25,7 @@ import {
 import type { Student } from "@/data/mockData";
 import type { AdminTeacherRecord } from "@/components/admin/teacher/types";
 import type { FeeTransaction } from "@/components/admin/types";
+import { percentageToCambridgeGrade } from "@/lib/grades";
 
 interface Props {
   students: Student[];
@@ -129,6 +130,18 @@ const AdminReports = ({ students, teachers, feeTransactions }: Props) => {
         total: value.total,
       }))
       .sort((a, b) => b.percentage - a.percentage);
+  }, [students]);
+
+  const gradeDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    students.forEach((student) => {
+      const latest = student.progress.at(-1);
+      const percentage = latest?.percentage ?? 0;
+      const grade = percentageToCambridgeGrade(percentage);
+      counts.set(grade, (counts.get(grade) || 0) + 1);
+    });
+    const order = ["A*", "A", "B", "C", "D", "E", "F/G"];
+    return order.map((grade) => ({ grade, count: counts.get(grade) || 0 }));
   }, [students]);
 
   // Custom tooltip for charts
@@ -380,6 +393,42 @@ const AdminReports = ({ students, teachers, feeTransactions }: Props) => {
             </div>
           )}
         </div>
+
+        {/* Cambridge Grade Distribution */}
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">
+              Cambridge Grade Distribution
+            </h3>
+          </div>
+          {gradeDistribution.every((row) => row.count === 0) ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No grade data available.
+            </p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={gradeDistribution}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="grade"
+                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          <div className="mt-3 text-xs text-muted-foreground text-center">
+            Based on each student’s latest percentage result.
+          </div>
+        </div>
       </div>
 
       {/* Detailed Tables */}
@@ -444,15 +493,23 @@ const AdminReports = ({ students, teachers, feeTransactions }: Props) => {
                 </tr>
               </thead>
               <tbody>
-                {pendingDuesByClass.map((row) => (
-                  <tr key={row.className} className="border-b border-border last:border-0">
-                    <td className="px-6 py-2 text-sm">{row.className}</td>
-                    <td className="px-6 py-2 text-sm">{row.students}</td>
-                    <td className="px-6 py-2 text-sm text-destructive font-medium">
-                      Rs. {row.pending.toLocaleString()}
+                {pendingDuesByClass.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-4 text-sm text-muted-foreground text-center">
+                      No pending dues data.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  pendingDuesByClass.map((row) => (
+                    <tr key={row.className} className="border-b border-border last:border-0">
+                      <td className="px-6 py-2 text-sm">{row.className}</td>
+                      <td className="px-6 py-2 text-sm">{row.students}</td>
+                      <td className="px-6 py-2 text-sm text-destructive font-medium">
+                        Rs. {row.pending.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -476,12 +533,20 @@ const AdminReports = ({ students, teachers, feeTransactions }: Props) => {
                 </tr>
               </thead>
               <tbody>
-                {teacherWorkload.map((row) => (
-                  <tr key={row.id} className="border-b border-border last:border-0">
-                    <td className="px-6 py-2 text-sm">{row.name}</td>
-                    <td className="px-6 py-2 text-sm font-medium">{row.loadUnits}</td>
+                {teacherWorkload.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="px-6 py-4 text-sm text-muted-foreground text-center">
+                      No teacher workload data.
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  teacherWorkload.map((row) => (
+                    <tr key={row.id} className="border-b border-border last:border-0">
+                      <td className="px-6 py-2 text-sm">{row.name}</td>
+                      <td className="px-6 py-2 text-sm font-medium">{row.loadUnits}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -508,17 +573,25 @@ const AdminReports = ({ students, teachers, feeTransactions }: Props) => {
                 </tr>
               </thead>
               <tbody>
-                {attendanceTrends.map((row) => (
-                  <tr key={row.className} className="border-b border-border last:border-0">
-                    <td className="px-6 py-2 text-sm">{row.className}</td>
-                    <td className="px-6 py-2 text-sm font-medium">
-                      {row.percentage.toFixed(1)}%
-                    </td>
-                    <td className="px-6 py-2 text-sm">
-                      {row.present}/{row.total}
+                {attendanceTrends.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-4 text-sm text-muted-foreground text-center">
+                      No attendance trend data.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  attendanceTrends.map((row) => (
+                    <tr key={row.className} className="border-b border-border last:border-0">
+                      <td className="px-6 py-2 text-sm">{row.className}</td>
+                      <td className="px-6 py-2 text-sm font-medium">
+                        {row.percentage.toFixed(1)}%
+                      </td>
+                      <td className="px-6 py-2 text-sm">
+                        {row.present}/{row.total}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

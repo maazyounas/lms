@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
@@ -17,6 +18,8 @@ import {
   STUDENTS,
   ANNOUNCEMENTS,
   TEACHERS,
+  MOCK_TEACHER_QUIZZES,
+  MOCK_QUIZ_SUBMISSIONS,
   type Course,
 } from "@/data/mockData";
 import TeacherDashboard from "@/components/teacher/dashboard/TeacherDashboard";
@@ -52,7 +55,8 @@ const navItems = [
 const currentTeacher = TEACHERS[0];
 
 const TeacherPortal = () => {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const navigate = useNavigate();
+  const { section } = useParams<{ section?: string }>();
   const [selectedClass, setSelectedClass] = useState<Course | null>(null);
   const [students, setStudents] = useState(() => {
     const raw = localStorage.getItem("students");
@@ -86,6 +90,40 @@ const TeacherPortal = () => {
   });
   const teacher = teachers[0] ?? currentTeacher;
   const myStudents = students;
+
+  useEffect(() => {
+    const seed = <T,>(key: string, value: T) => {
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    };
+    seed("students", STUDENTS);
+    seed("teachers", TEACHERS);
+    seed("announcements", ANNOUNCEMENTS);
+    seed("teacher-quizzes", MOCK_TEACHER_QUIZZES);
+    seed("quiz-submissions", MOCK_QUIZ_SUBMISSIONS);
+  }, []);
+
+  const allowedSections = useMemo(
+    () => new Set([...navItems.map((item) => item.id), "profile"]),
+    []
+  );
+
+  const activeNav = allowedSections.has(section ?? "")
+    ? (section as string)
+    : "dashboard";
+
+  useEffect(() => {
+    if (!section || !allowedSections.has(section)) {
+      navigate("/teacher/dashboard", { replace: true });
+    }
+  }, [allowedSections, navigate, section]);
+
+  useEffect(() => {
+    if (activeNav !== "classes" && selectedClass) {
+      setSelectedClass(null);
+    }
+  }, [activeNav, selectedClass]);
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
@@ -128,13 +166,17 @@ const TeacherPortal = () => {
     localStorage.setItem("announcements", JSON.stringify(announcements));
   }, [announcements]);
 
+  const handleNavChange = (nav: string) => {
+    navigate(`/teacher/${nav}`);
+  };
+
   const renderContent = () => {
     switch (activeNav) {
       case "dashboard":
         return (
           <TeacherDashboard
             teacher={teacher}
-            onNavigate={setActiveNav}
+            onNavigate={handleNavChange}
             onSelectClass={setSelectedClass}
           />
         );
@@ -144,7 +186,7 @@ const TeacherPortal = () => {
             teacher={teacher}
             selectedClass={selectedClass}
             onSelectClass={setSelectedClass}
-            onNavigate={(nav) => setActiveNav(nav)}
+            onNavigate={handleNavChange}
           />
         );
       case "gradebook":
@@ -222,20 +264,17 @@ const TeacherPortal = () => {
       userAvatar={teacher.avatar}
       navItems={navItems}
       activeNav={activeNav}
-      onNavChange={(nav) => {
-        setActiveNav(nav);
-        if (nav !== "classes") setSelectedClass(null);
-      }}
+      onNavChange={handleNavChange}
       notificationSlot={
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveNav("profile")}
+            onClick={() => handleNavChange("profile")}
             className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
             title="My Profile"
           >
             <User className="h-5 w-5 text-primary" />
           </button>
-          <TeacherNotifications teacher={teacher} onNavigate={setActiveNav} />
+          <TeacherNotifications teacher={teacher} onNavigate={handleNavChange} />
         </div>
       }
     >

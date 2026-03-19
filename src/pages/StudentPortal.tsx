@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard, FileText, UserCheck, ClipboardList, Calendar,
   User, CalendarOff, Megaphone, BookOpen, ClipboardCheck
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { STUDENTS, ANNOUNCEMENTS } from "@/data/mockData";
+import { MOCK_TEACHER_QUIZZES, MOCK_QUIZ_SUBMISSIONS } from "@/data/mockData";
 import StudentDashboard from "@/components/student/dashboard/components/StudentDashboard";
 import StudentProfile from "@/components/student/profile/components/StudentProfile";
 import StudentGrades from "@/components/student/grades/components/StudentGrades";
@@ -30,7 +32,8 @@ const navItems = [
 ];
 
 const StudentPortal = () => {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const navigate = useNavigate();
+  const { section } = useParams<{ section?: string }>();
   const [students, setStudents] = useState(() => {
     const raw = localStorage.getItem("students");
     if (!raw) return STUDENTS;
@@ -52,6 +55,36 @@ const StudentPortal = () => {
     }
   });
   const student = students[0] ?? STUDENTS[0];
+  const [announcementLimit, setAnnouncementLimit] = useState(6);
+
+  useEffect(() => {
+    const seed = <T,>(key: string, value: T) => {
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    };
+    seed("students", STUDENTS);
+    seed("announcements", ANNOUNCEMENTS);
+    seed("teacher-quizzes", MOCK_TEACHER_QUIZZES);
+    seed("quiz-submissions", MOCK_QUIZ_SUBMISSIONS);
+  }, []);
+
+  const allowedSections = useMemo(() => new Set(navItems.map((item) => item.id)), []);
+  const activeNav = allowedSections.has(section ?? "")
+    ? (section as string)
+    : "dashboard";
+
+  useEffect(() => {
+    if (!section || !allowedSections.has(section)) {
+      navigate("/student/dashboard", { replace: true });
+    }
+  }, [allowedSections, navigate, section]);
+
+  useEffect(() => {
+    if (activeNav === "announcements") {
+      setAnnouncementLimit(6);
+    }
+  }, [activeNav]);
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
@@ -81,23 +114,27 @@ const StudentPortal = () => {
   }, []);
 
   // Custom notification slot with profile icon
+  const handleNavChange = (nav: string) => {
+    navigate(`/student/${nav}`);
+  };
+
   const notificationSlot = (
     <div className="flex items-center gap-3">
       <button
-        onClick={() => setActiveNav("profile")}
+        onClick={() => handleNavChange("profile")}
         className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
         title="My Profile"
       >
         <User className="h-5 w-5 text-primary" />
       </button>
-      <NotificationBell student={student} onNavigate={setActiveNav} />
+      <NotificationBell student={student} onNavigate={handleNavChange} />
     </div>
   );
 
   const renderContent = () => {
     switch (activeNav) {
       case "dashboard":
-        return <StudentDashboard student={student} onNavigate={setActiveNav} />;
+        return <StudentDashboard student={student} onNavigate={handleNavChange} />;
       case "profile":
         return <StudentProfile student={student} />;
       case "grades":
@@ -119,7 +156,12 @@ const StudentPortal = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-6">Announcements</h1>
             <div className="space-y-3">
-              {announcements.map((a) => (
+              {announcements.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground text-center">
+                  No announcements yet. Check back later or contact your teacher.
+                </div>
+              )}
+              {announcements.slice(0, announcementLimit).map((a) => (
                 <div key={a.id} className="bg-card border border-border rounded-xl p-5">
                   <div className="flex items-start gap-3">
                     <div className={`h-2 w-2 rounded-full mt-2 shrink-0 ${a.priority === "high" ? "bg-destructive" : a.priority === "medium" ? "bg-warning" : "bg-muted-foreground"}`} />
@@ -131,6 +173,16 @@ const StudentPortal = () => {
                   </div>
                 </div>
               ))}
+              {announcements.length > announcementLimit && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setAnnouncementLimit((prev) => prev + 6)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Show more announcements
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -146,7 +198,7 @@ const StudentPortal = () => {
       userAvatar={student.avatar}
       navItems={navItems}
       activeNav={activeNav}
-      onNavChange={setActiveNav}
+      onNavChange={handleNavChange}
       notificationSlot={notificationSlot}
     >
       {renderContent()}

@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Eye } from "lucide-react";
 import type { Student, Teacher } from "@/data/mockData";
 import { gradeColor } from "../classUtils";
+import { percentageToCambridgeGrade } from "@/lib/grades";
 
 interface Props {
   classStudents: Student[];
@@ -10,16 +12,25 @@ interface Props {
 }
 
 const StudentsSection = ({ classStudents, teacher, expandedStudentId, onToggleStudent }: Props) => {
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [classStudents.length]);
+
+  const visibleStudents = classStudents.slice(0, visibleCount);
+
   return (
     <div>
       <h3 className="text-lg font-semibold text-foreground mt-8 mb-4">Students in this Class</h3>
       <div className="space-y-3">
-        {classStudents.map((s) => {
+        {visibleStudents.map((s) => {
           const subTests = s.tests.filter((t) => t.subject === teacher.subject);
           const avg =
             subTests.length > 0
               ? subTests.reduce((a, t) => a + (t.marks / t.total) * 100, 0) / subTests.length
               : 0;
+          const avgGrade = percentageToCambridgeGrade(avg);
           const subjectAssignments = s.assignments.filter((a) => a.subject === teacher.subject);
           const isExpanded = expandedStudentId === s.id;
 
@@ -43,11 +54,9 @@ const StudentsSection = ({ classStudents, teacher, expandedStudentId, onToggleSt
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <span
-                      className={`text-sm font-bold ${
-                        avg >= 80 ? "text-success" : avg >= 60 ? "text-warning" : "text-destructive"
-                      }`}
+                      className={`text-sm font-bold ${gradeColor(avgGrade)}`}
                     >
-                      {avg.toFixed(0)}% Avg
+                      {avg.toFixed(0)}% Avg · {avgGrade}
                     </span>
                   </div>
                   {isExpanded ? (
@@ -82,8 +91,18 @@ const StudentsSection = ({ classStudents, teacher, expandedStudentId, onToggleSt
                               <td className="p-2 font-medium">{test.test}</td>
                               <td className="p-2">{test.marks}</td>
                               <td className="p-2">{test.total}</td>
-                              <td className="p-2">{((test.marks / test.total) * 100).toFixed(0)}%</td>
-                              <td className={`p-2 font-bold ${gradeColor(test.grade)}`}>{test.grade}</td>
+                              {(() => {
+                                const percent = (test.marks / test.total) * 100;
+                                const grade = percentageToCambridgeGrade(percent);
+                                return (
+                                  <>
+                                    <td className="p-2">{percent.toFixed(0)}%</td>
+                                    <td className={`p-2 font-bold ${gradeColor(grade)}`}>
+                                      {grade}
+                                    </td>
+                                  </>
+                                );
+                              })()}
                               <td className="p-2">{new Date(test.date).toLocaleDateString()}</td>
                             </tr>
                           ))}
@@ -162,6 +181,16 @@ const StudentsSection = ({ classStudents, teacher, expandedStudentId, onToggleSt
           );
         })}
       </div>
+      {classStudents.length > visibleCount && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setVisibleCount((prev) => prev + 20)}
+            className="text-sm text-primary hover:underline"
+          >
+            Show more students
+          </button>
+        </div>
+      )}
     </div>
   );
 };

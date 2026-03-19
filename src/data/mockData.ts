@@ -38,7 +38,7 @@ export interface Student {
   status: string;
   attendance: { present: number; absent: number; late: number; total: number };
   tests: StudentTest[];
-  progress: { month: string; gpa: number }[];
+  progress: { month: string; percentage: number }[];
   assignments: StudentAssignment[];
   behavior: { date: string; type: string; note: string }[];
   fees: { total: number; paid: number; pending: number; status: string };
@@ -126,8 +126,8 @@ export const STUDENTS: Student[] = [
       { subject: "Computer Science", test: "Mid-Term", marks: 95, total: 100, date: "2025-10-20", grade: "A+" },
     ],
     progress: [
-      { month: "Aug", gpa: 3.5 }, { month: "Sep", gpa: 3.6 }, { month: "Oct", gpa: 3.7 },
-      { month: "Nov", gpa: 3.8 }, { month: "Dec", gpa: 3.9 }, { month: "Jan", gpa: 3.85 },
+      { month: "Aug", percentage: 87.5 }, { month: "Sep", percentage: 90.0 }, { month: "Oct", percentage: 92.5 },
+      { month: "Nov", percentage: 95.0 }, { month: "Dec", percentage: 97.5 }, { month: "Jan", percentage: 96.3 },
     ],
    assignments: [
   {
@@ -193,8 +193,8 @@ export const STUDENTS: Student[] = [
       { subject: "Computer Science", test: "Mid-Term", marks: 60, total: 100, date: "2025-10-20", grade: "C+" },
     ],
     progress: [
-      { month: "Aug", gpa: 2.8 }, { month: "Sep", gpa: 2.9 }, { month: "Oct", gpa: 2.85 },
-      { month: "Nov", gpa: 3.0 }, { month: "Dec", gpa: 3.1 }, { month: "Jan", gpa: 3.0 },
+      { month: "Aug", percentage: 70.0 }, { month: "Sep", percentage: 72.5 }, { month: "Oct", percentage: 71.3 },
+      { month: "Nov", percentage: 75.0 }, { month: "Dec", percentage: 77.5 }, { month: "Jan", percentage: 75.0 },
     ],
     assignments: [
   {
@@ -259,8 +259,8 @@ export const STUDENTS: Student[] = [
       { subject: "Computer Science", test: "Mid-Term", marks: 98, total: 100, date: "2025-10-20", grade: "A+" },
     ],
     progress: [
-      { month: "Aug", gpa: 3.9 }, { month: "Sep", gpa: 3.95 }, { month: "Oct", gpa: 4.0 },
-      { month: "Nov", gpa: 4.0 }, { month: "Dec", gpa: 4.0 }, { month: "Jan", gpa: 4.0 },
+      { month: "Aug", percentage: 97.5 }, { month: "Sep", percentage: 98.8 }, { month: "Oct", percentage: 100.0 },
+      { month: "Nov", percentage: 100.0 }, { month: "Dec", percentage: 100.0 }, { month: "Jan", percentage: 100.0 },
     ],
     assignments: [
   {
@@ -325,8 +325,8 @@ export const STUDENTS: Student[] = [
       { subject: "Computer Science", test: "Mid-Term", marks: 52, total: 100, date: "2025-10-20", grade: "C" },
     ],
     progress: [
-      { month: "Aug", gpa: 2.2 }, { month: "Sep", gpa: 2.1 }, { month: "Oct", gpa: 2.3 },
-      { month: "Nov", gpa: 2.4 }, { month: "Dec", gpa: 2.5 }, { month: "Jan", gpa: 2.45 },
+      { month: "Aug", percentage: 55.0 }, { month: "Sep", percentage: 52.5 }, { month: "Oct", percentage: 57.5 },
+      { month: "Nov", percentage: 60.0 }, { month: "Dec", percentage: 62.5 }, { month: "Jan", percentage: 61.3 },
     ],
     assignments: [
   {
@@ -392,8 +392,8 @@ export const STUDENTS: Student[] = [
       { subject: "Computer Science", test: "Mid-Term", marks: 90, total: 100, date: "2025-10-20", grade: "A+" },
     ],
     progress: [
-      { month: "Aug", gpa: 3.3 }, { month: "Sep", gpa: 3.4 }, { month: "Oct", gpa: 3.5 },
-      { month: "Nov", gpa: 3.6 }, { month: "Dec", gpa: 3.65 }, { month: "Jan", gpa: 3.7 },
+      { month: "Aug", percentage: 82.5 }, { month: "Sep", percentage: 85.0 }, { month: "Oct", percentage: 87.5 },
+      { month: "Nov", percentage: 90.0 }, { month: "Dec", percentage: 91.3 }, { month: "Jan", percentage: 92.5 },
     ],
     assignments: [
   {
@@ -457,8 +457,8 @@ export const STUDENTS: Student[] = [
       { subject: "Computer Science", test: "Mid-Term", marks: 92, total: 100, date: "2025-10-20", grade: "A+" },
     ],
     progress: [
-      { month: "Aug", gpa: 3.2 }, { month: "Sep", gpa: 3.3 }, { month: "Oct", gpa: 3.4 },
-      { month: "Nov", gpa: 3.5 }, { month: "Dec", gpa: 3.55 }, { month: "Jan", gpa: 3.6 },
+      { month: "Aug", percentage: 80.0 }, { month: "Sep", percentage: 82.5 }, { month: "Oct", percentage: 85.0 },
+      { month: "Nov", percentage: 87.5 }, { month: "Dec", percentage: 88.8 }, { month: "Jan", percentage: 90.0 },
     ],
     assignments: [
       {
@@ -486,24 +486,215 @@ export const STUDENTS: Student[] = [
 ];
 
 export const COURSES: Course[] = [
- {
+  {
     id: 1,
-    name: "Mathematics",
-    code: "MATH-10",
+    name: "Cambridge Mathematics",
+    code: "MATH-10-CAM",
     teacher: "Mr. Imran Ali",
     teacherId: 1,
     description:
-      "This course covers Algebra, Trigonometry, Statistics and Probability.",
+      "Cambridge-aligned course covering algebra, functions, geometry, trigonometry, and statistics.",
     schedule: "Mon, Wed, Fri - 8:00 AM",
     room: "Room 201",
     credits: 5,
     progress: 68,
-
+    materials: [
+      { id: 1, title: "Formula Sheet", type: "pdf", url: "math_formula.pdf" },
+      { id: 2, title: "Revision Guide", type: "doc", url: "math_revision.docx" },
+    ],
+    chapters: [
+      {
+        id: 1,
+        chapterNumber: 1,
+        chapterName: "Algebraic Expressions",
+        topics: [
+          {
+            id: 1,
+            topicName: "Factorisation",
+            materials: [{ id: 1, title: "Worked Examples", type: "pdf", url: "factorisation.pdf" }],
+          },
+          {
+            id: 2,
+            topicName: "Indices",
+            materials: [{ id: 2, title: "Practice Set", type: "doc", url: "indices.docx" }],
+          },
+        ],
+        materials: [],
+      },
+      {
+        id: 2,
+        chapterNumber: 2,
+        chapterName: "Trigonometry",
+        topics: [
+          {
+            id: 3,
+            topicName: "Right-angled triangles",
+            materials: [{ id: 3, title: "Revision Notes", type: "pdf", url: "trig_notes.pdf" }],
+          },
+        ],
+        materials: [],
+      },
+    ],
     pastPapers: [
       { title: "Mid Term Paper", year: "2025", totalMarks: 50, file: "math_mid_2025.pdf" },
       { title: "Final Term Paper", year: "2024", totalMarks: 100, file: "math_final_2024.pdf" },
     ],
-  }, ];
+  },
+  {
+    id: 2,
+    name: "Cambridge Physics",
+    code: "PHY-10-CAM",
+    teacher: "Dr. Sana Fatima",
+    teacherId: 2,
+    description:
+      "Cambridge-aligned physics with core concepts, practical skills, and structured questions.",
+    schedule: "Tue, Thu - 8:50 AM",
+    room: "Room 204",
+    credits: 5,
+    progress: 54,
+    materials: [
+      { id: 10, title: "Lab Safety Guide", type: "pdf", url: "lab_safety.pdf" },
+      { id: 11, title: "Formula Sheet", type: "pdf", url: "physics_formula.pdf" },
+    ],
+    chapters: [
+      {
+        id: 3,
+        chapterNumber: 1,
+        chapterName: "Motion",
+        topics: [
+          {
+            id: 4,
+            topicName: "Speed and Velocity",
+            materials: [{ id: 12, title: "Practice Questions", type: "doc", url: "motion_practice.docx" }],
+          },
+        ],
+        materials: [],
+      },
+      {
+        id: 4,
+        chapterNumber: 2,
+        chapterName: "Forces",
+        topics: [
+          {
+            id: 5,
+            topicName: "Resultant Force",
+            materials: [{ id: 13, title: "Worked Examples", type: "pdf", url: "forces_examples.pdf" }],
+          },
+        ],
+        materials: [],
+      },
+    ],
+    pastPapers: [
+      { title: "Paper 2 (Structured)", year: "2025", totalMarks: 80, file: "phy_p2_2025.pdf" },
+      { title: "Paper 4 (Alternative)", year: "2024", totalMarks: 60, file: "phy_p4_2024.pdf" },
+    ],
+  },
+  {
+    id: 3,
+    name: "Cambridge Chemistry",
+    code: "CHEM-10-CAM",
+    teacher: "Mr. Waqas Ahmed",
+    teacherId: 4,
+    description:
+      "Cambridge chemistry covering structure, bonding, quantitative chemistry, and core reactions.",
+    schedule: "Mon, Wed - 10:45 AM",
+    room: "Room 205",
+    credits: 5,
+    progress: 61,
+    materials: [
+      { id: 20, title: "Periodic Table", type: "pdf", url: "periodic_table.pdf" },
+    ],
+    chapters: [
+      {
+        id: 5,
+        chapterNumber: 1,
+        chapterName: "Atomic Structure",
+        topics: [
+          {
+            id: 6,
+            topicName: "Isotopes",
+            materials: [{ id: 21, title: "Notes", type: "pdf", url: "isotopes.pdf" }],
+          },
+        ],
+        materials: [],
+      },
+    ],
+    pastPapers: [
+      { title: "Paper 2 (MCQ)", year: "2025", totalMarks: 40, file: "chem_p2_2025.pdf" },
+      { title: "Paper 6 (Practical)", year: "2024", totalMarks: 40, file: "chem_p6_2024.pdf" },
+    ],
+  },
+  {
+    id: 4,
+    name: "Cambridge English",
+    code: "ENG-10-CAM",
+    teacher: "Ms. Hira Nawaz",
+    teacherId: 3,
+    description:
+      "Cambridge English language with reading, writing, and speaking-focused tasks.",
+    schedule: "Tue, Thu - 9:40 AM",
+    room: "Room 202",
+    credits: 4,
+    progress: 72,
+    materials: [
+      { id: 30, title: "Writing Checklist", type: "doc", url: "writing_checklist.docx" },
+    ],
+    chapters: [
+      {
+        id: 6,
+        chapterNumber: 1,
+        chapterName: "Directed Writing",
+        topics: [
+          {
+            id: 7,
+            topicName: "Report Writing",
+            materials: [{ id: 31, title: "Sample Report", type: "pdf", url: "report_sample.pdf" }],
+          },
+        ],
+        materials: [],
+      },
+    ],
+    pastPapers: [
+      { title: "Paper 1 (Reading)", year: "2025", totalMarks: 60, file: "eng_p1_2025.pdf" },
+      { title: "Paper 2 (Writing)", year: "2024", totalMarks: 60, file: "eng_p2_2024.pdf" },
+    ],
+  },
+  {
+    id: 5,
+    name: "Cambridge Computer Science",
+    code: "CS-10-CAM",
+    teacher: "Mr. Faisal Iqbal",
+    teacherId: 6,
+    description:
+      "Cambridge computer science focusing on programming fundamentals and data representation.",
+    schedule: "Fri - 11:35 AM",
+    room: "Lab 1",
+    credits: 4,
+    progress: 58,
+    materials: [
+      { id: 40, title: "Python Basics", type: "pdf", url: "python_basics.pdf" },
+    ],
+    chapters: [
+      {
+        id: 7,
+        chapterNumber: 1,
+        chapterName: "Data Representation",
+        topics: [
+          {
+            id: 8,
+            topicName: "Binary and Hex",
+            materials: [{ id: 41, title: "Practice Sheet", type: "pdf", url: "binary_practice.pdf" }],
+          },
+        ],
+        materials: [],
+      },
+    ],
+    pastPapers: [
+      { title: "Paper 1 (Theory)", year: "2025", totalMarks: 75, file: "cs_p1_2025.pdf" },
+      { title: "Paper 2 (Practical)", year: "2024", totalMarks: 50, file: "cs_p2_2024.pdf" },
+    ],
+  },
+];
 
 export const ANNOUNCEMENTS: Announcement[] = [
   { id: 1, title: "Annual Sports Day - Registration Open", date: "2026-02-20", priority: "high", content: "Register your students for the Annual Sports Day by March 5th. Events include athletics, cricket, and football.", author: "Admin Office" },
@@ -610,4 +801,219 @@ export const TEACHER_ASSIGNMENTS: TeacherAssignment[] = [
       { studentId: 6, studentName: "Usman Tariq", studentAvatar: "UT", status: "Pending" },
     ]
   },
+  {
+    id: 5, title: "Physics Structured Questions", subject: "Physics", classGrade: "10-A", dueDate: "2026-03-04", totalMarks: 30, description: "Answer structured questions on motion and forces. Show all steps.", createdDate: "2026-02-20",
+    submissions: [
+      { studentId: 1, studentName: "Ayesha Khan", studentAvatar: "AK", status: "Submitted", submittedDate: "2026-03-02", fileName: "ayesha_physics.pdf", marks: 27, feedback: "Clear explanations." },
+      { studentId: 2, studentName: "Ahmed Raza", studentAvatar: "AR", status: "Late", submittedDate: "2026-03-05", fileName: "ahmed_physics.pdf", marks: 18, feedback: "Late submission." },
+    ]
+  },
+  {
+    id: 6, title: "Chemistry Practical Notes", subject: "Chemistry", classGrade: "10-B", dueDate: "2026-03-06", totalMarks: 20, description: "Write up the titration practical with observations and calculations.", createdDate: "2026-02-22",
+    submissions: [
+      { studentId: 3, studentName: "Fatima Noor", studentAvatar: "FN", status: "Submitted", submittedDate: "2026-03-04", fileName: "fatima_chem.pdf", marks: 19, feedback: "Excellent layout." },
+      { studentId: 4, studentName: "Bilal Hussain", studentAvatar: "BH", status: "Missing" },
+    ]
+  },
+  {
+    id: 7, title: "English Directed Writing", subject: "English", classGrade: "10-A", dueDate: "2026-03-08", totalMarks: 25, description: "Write a report based on the given passage. 250-300 words.", createdDate: "2026-02-24",
+    submissions: [
+      { studentId: 1, studentName: "Ayesha Khan", studentAvatar: "AK", status: "Submitted", submittedDate: "2026-03-06", fileName: "ayesha_report.pdf", marks: 22, feedback: "Good tone and structure." },
+      { studentId: 5, studentName: "Sara Malik", studentAvatar: "SM", status: "Submitted", submittedDate: "2026-03-06", fileName: "sara_report.pdf", marks: 21, feedback: "Clear organization." },
+    ]
+  },
+  {
+    id: 8, title: "CS Algorithms Worksheet", subject: "Computer Science", classGrade: "10-B", dueDate: "2026-03-12", totalMarks: 20, description: "Dry run the given algorithms and trace outputs.", createdDate: "2026-02-26",
+    submissions: [
+      { studentId: 6, studentName: "Usman Tariq", studentAvatar: "UT", status: "Submitted", submittedDate: "2026-03-10", fileName: "usman_cs.pdf", marks: 17, feedback: "Check Q4." },
+      { studentId: 4, studentName: "Bilal Hussain", studentAvatar: "BH", status: "Pending" },
+    ]
+  },
 ];
+
+export type MockTeacherQuiz = {
+  id: string;
+  title: string;
+  description: string;
+  classGrade: string;
+  chapterName: string;
+  topicName: string;
+  dueDate: string;
+  questions: {
+    id: string;
+    text: string;
+    options: { id: string; text: string }[];
+    correctOptionId: string | null;
+  }[];
+  teacherName?: string;
+  teacherId?: number;
+  subject?: string;
+  createdAt?: string;
+};
+
+export type MockQuizSubmission = {
+  id: string;
+  quizId: string;
+  studentId: number;
+  submittedAt: string;
+  answers: Record<string, string>;
+  score: number;
+  total: number;
+  subject?: string;
+  teacherName?: string;
+  checked: boolean;
+};
+
+export const MOCK_TEACHER_QUIZZES: MockTeacherQuiz[] = [
+  {
+    id: "quiz-1",
+    title: "Maths Algebra Basics",
+    description: "Cambridge-style MCQs on algebraic expressions.",
+    classGrade: "10-A",
+    chapterName: "Algebraic Expressions",
+    topicName: "Factorisation",
+    dueDate: "2026-03-15",
+    questions: [
+      {
+        id: "q1",
+        text: "Factorise: x^2 - 9",
+        options: [
+          { id: "q1a", text: "(x-3)(x+3)" },
+          { id: "q1b", text: "(x-9)(x+1)" },
+          { id: "q1c", text: "x(x-9)" },
+          { id: "q1d", text: "(x-3)^2" },
+        ],
+        correctOptionId: "q1a",
+      },
+      {
+        id: "q2",
+        text: "Simplify: (2x)(3x)",
+        options: [
+          { id: "q2a", text: "5x" },
+          { id: "q2b", text: "6x^2" },
+          { id: "q2c", text: "6x" },
+          { id: "q2d", text: "x^2" },
+        ],
+        correctOptionId: "q2b",
+      },
+    ],
+    teacherName: "Mr. Imran Ali",
+    teacherId: 1,
+    subject: "Mathematics",
+    createdAt: "2026-03-01T09:00:00.000Z",
+  },
+  {
+    id: "quiz-2",
+    title: "Physics Motion Check",
+    description: "Short quiz on speed, velocity and acceleration.",
+    classGrade: "10-B",
+    chapterName: "Motion",
+    topicName: "Speed and Velocity",
+    dueDate: "2026-03-16",
+    questions: [
+      {
+        id: "q3",
+        text: "Speed is defined as:",
+        options: [
+          { id: "q3a", text: "Distance / Time" },
+          { id: "q3b", text: "Displacement / Time" },
+          { id: "q3c", text: "Force / Area" },
+          { id: "q3d", text: "Mass / Volume" },
+        ],
+        correctOptionId: "q3a",
+      },
+      {
+        id: "q4",
+        text: "Acceleration is the rate of change of:",
+        options: [
+          { id: "q4a", text: "Speed" },
+          { id: "q4b", text: "Velocity" },
+          { id: "q4c", text: "Momentum" },
+          { id: "q4d", text: "Distance" },
+        ],
+        correctOptionId: "q4b",
+      },
+    ],
+    teacherName: "Dr. Sana Fatima",
+    teacherId: 2,
+    subject: "Physics",
+    createdAt: "2026-03-02T10:00:00.000Z",
+  },
+  {
+    id: "quiz-3",
+    title: "English Writing Skills",
+    description: "Cambridge-style comprehension check.",
+    classGrade: "10-A",
+    chapterName: "Directed Writing",
+    topicName: "Report Writing",
+    dueDate: "2026-03-18",
+    questions: [
+      {
+        id: "q5",
+        text: "Which feature is essential in a formal report?",
+        options: [
+          { id: "q5a", text: "Informal tone" },
+          { id: "q5b", text: "Objective language" },
+          { id: "q5c", text: "Slang" },
+          { id: "q5d", text: "First-person bias" },
+        ],
+        correctOptionId: "q5b",
+      },
+      {
+        id: "q6",
+        text: "A report should usually include:",
+        options: [
+          { id: "q6a", text: "Poetry" },
+          { id: "q6b", text: "Headings and subheadings" },
+          { id: "q6c", text: "Dialogue" },
+          { id: "q6d", text: "Rhymes" },
+        ],
+        correctOptionId: "q6b",
+      },
+    ],
+    teacherName: "Ms. Hira Nawaz",
+    teacherId: 3,
+    subject: "English",
+    createdAt: "2026-03-03T11:30:00.000Z",
+  },
+];
+
+export const MOCK_QUIZ_SUBMISSIONS: MockQuizSubmission[] = [
+  {
+    id: "sub-1",
+    quizId: "quiz-1",
+    studentId: 1,
+    submittedAt: "2026-03-05T09:15:00.000Z",
+    answers: { q1: "q1a", q2: "q2b" },
+    score: 2,
+    total: 2,
+    subject: "Mathematics",
+    teacherName: "Mr. Imran Ali",
+    checked: true,
+  },
+  {
+    id: "sub-2",
+    quizId: "quiz-2",
+    studentId: 4,
+    submittedAt: "2026-03-06T10:40:00.000Z",
+    answers: { q3: "q3a", q4: "q4a" },
+    score: 1,
+    total: 2,
+    subject: "Physics",
+    teacherName: "Dr. Sana Fatima",
+    checked: false,
+  },
+  {
+    id: "sub-3",
+    quizId: "quiz-3",
+    studentId: 1,
+    submittedAt: "2026-03-07T08:20:00.000Z",
+    answers: { q5: "q5b", q6: "q6b" },
+    score: 2,
+    total: 2,
+    subject: "English",
+    teacherName: "Ms. Hira Nawaz",
+    checked: true,
+  },
+];
+

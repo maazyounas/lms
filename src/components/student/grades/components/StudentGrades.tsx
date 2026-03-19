@@ -11,22 +11,19 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
+import { cambridgeGradeColor, percentageToCambridgeGrade } from "@/lib/grades";
 
 interface Props {
   student: Student;
 }
 
-const gradeColor = (g: string) => {
-  if (g.startsWith("A")) return "text-success";
-  if (g.startsWith("B")) return "text-info";
-  if (g.startsWith("C")) return "text-warning";
-  return "text-destructive";
-};
+const gradeColor = (g: string) => cambridgeGradeColor(g);
 
 const gradeBg = (g: string) => {
   if (g.startsWith("A")) return "bg-success/15";
   if (g.startsWith("B")) return "bg-info/15";
   if (g.startsWith("C")) return "bg-warning/15";
+  if (g.startsWith("D") || g.startsWith("E")) return "bg-warning/15";
   return "bg-destructive/15";
 };
 
@@ -49,20 +46,7 @@ const StudentGrades = ({ student }: Props) => {
     const avgPct =
       tests.reduce((a, t) => a + (t.marks / t.total) * 100, 0) / tests.length;
 
-    const overallGrade =
-      avgPct >= 90
-        ? "A+"
-        : avgPct >= 85
-          ? "A"
-          : avgPct >= 80
-            ? "B+"
-            : avgPct >= 75
-              ? "B"
-              : avgPct >= 70
-                ? "C+"
-                : avgPct >= 60
-                  ? "C"
-                  : "D";
+    const overallGrade = percentageToCambridgeGrade(avgPct);
 
     return { subject: subj, tests, avgPct, overallGrade };
   });
@@ -227,16 +211,22 @@ const StudentGrades = ({ student }: Props) => {
                               <td className="px-5 py-3 text-sm text-foreground font-medium">
                                 {t.marks}/{t.total}
                               </td>
-                              <td className="px-5 py-3 text-sm text-muted-foreground">
-                                {((t.marks / t.total) * 100).toFixed(0)}%
-                              </td>
-                              <td className="px-5 py-3">
-                                <span
-                                  className={`font-bold text-sm ${gradeColor(t.grade)}`}
-                                >
-                                  {t.grade}
-                                </span>
-                              </td>
+                              {(() => {
+                                const percent = (t.marks / t.total) * 100;
+                                const grade = percentageToCambridgeGrade(percent);
+                                return (
+                                  <>
+                                    <td className="px-5 py-3 text-sm text-muted-foreground">
+                                      {percent.toFixed(0)}%
+                                    </td>
+                                    <td className="px-5 py-3">
+                                      <span className={`font-bold text-sm ${gradeColor(grade)}`}>
+                                        {grade}
+                                      </span>
+                                    </td>
+                                  </>
+                                );
+                              })()}
                             </tr>
                           ))}
                         </tbody>
